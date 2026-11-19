@@ -25,7 +25,7 @@
   document.getElementById('next').addEventListener('click', () => setStage(stages[Math.min(stages.length - 1, stages.indexOf(stage) + 1)]));
   const initialCode = {
     quickcheck: 'import Test.QuickCheck\nimport Reference (insert)\n\n-- Write your properties and any helper functions here.\n\nmain :: IO ()\nmain = do\n  -- Run your properties with quickCheck.\n  pure ()\n',
-    fitspec: 'import Test.FitSpec\n\n-- Write your helpers and FitSpec property list here.\n\n-- Define your FitSpec main function.\n'
+    fitspec: 'import Test.FitSpec\nimport Reference (insert)\n\n-- Define your helpers and properties here.\n\nproperties :: (Int -> [Int] -> [Int]) -> [Property]\nproperties f = []\n\nmain :: IO ()\nmain = mainWith args { names = ["insert x xs"], nMutants = 100, nTests = 100, timeout = 0 } (insert :: Int -> [Int] -> [Int]) properties\n'
   };
   function setupEditor(name) {
     const value = load(name) || initialCode[name];
@@ -72,8 +72,24 @@
       button.disabled = false;
     }
   });
-  document.getElementById('run-fitspec').addEventListener('click', () => {
-    document.getElementById('fitspec-results').textContent = 'FitSpec execution will be connected in Milestone 3.';
+  document.getElementById('run-fitspec').addEventListener('click', async () => {
+    const button = document.getElementById('run-fitspec');
+    const results = document.getElementById('fitspec-results');
+    button.disabled = true;
+    results.textContent = 'Compiling and running FitSpec (up to 90 seconds)...';
+    try {
+      const response = await fetch('http://localhost:3001/api/fitspec', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: editorText('fitspec') })
+      });
+      const data = await response.json();
+      results.textContent = data.output || data.error || 'No output returned.';
+    } catch (error) {
+      results.textContent = 'Cannot reach the backend at http://localhost:3001.\n' + error.message;
+    } finally {
+      button.disabled = false;
+    }
   });
   if (window.require && window.require.config) {
     window.require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs' } });

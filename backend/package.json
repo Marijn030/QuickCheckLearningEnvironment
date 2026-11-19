@@ -2,9 +2,7 @@
   "name": "quickcheck-learning-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "Backend for the QuickCheck and FitSpec learning environment",
+  "description": "Local QuickCheck and FitSpec execution API",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  }
+  "scripts": { "start": "node server.js" }
 }
