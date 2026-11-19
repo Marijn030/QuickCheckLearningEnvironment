@@ -24,7 +24,7 @@
   document.getElementById('previous').addEventListener('click', () => setStage(stages[Math.max(0, stages.indexOf(stage) - 1)]));
   document.getElementById('next').addEventListener('click', () => setStage(stages[Math.min(stages.length - 1, stages.indexOf(stage) + 1)]));
   const initialCode = {
-    quickcheck: 'import Test.QuickCheck\n\n-- Write your properties and any helper functions here.\n\nmain :: IO ()\nmain = do\n  -- Run your properties with quickCheck.\n  pure ()\n',
+    quickcheck: 'import Test.QuickCheck\nimport Reference (insert)\n\n-- Write your properties and any helper functions here.\n\nmain :: IO ()\nmain = do\n  -- Run your properties with quickCheck.\n  pure ()\n',
     fitspec: 'import Test.FitSpec\n\n-- Write your helpers and FitSpec property list here.\n\n-- Define your FitSpec main function.\n'
   };
   function setupEditor(name) {
@@ -47,10 +47,33 @@
   }
   const savedStage = load('stage');
   setStage(stages.includes(savedStage) ? savedStage : 'description');
-  ['quickcheck', 'fitspec'].forEach(name => {
-    document.getElementById('run-' + name).addEventListener('click', () => {
-      document.getElementById(name + '-results').textContent = 'Execution is not connected yet. Your code is saved locally. The next milestone will connect this button to a sandboxed Haskell backend.';
-    });
+  function editorText(name) {
+    const editor = editors[name];
+    if (editor && typeof editor.getValue === 'function') return editor.getValue();
+    const fallback = document.querySelector('#' + name + '-editor textarea');
+    return fallback ? fallback.value : (load(name) || initialCode[name]);
+  }
+  document.getElementById('run-quickcheck').addEventListener('click', async () => {
+    const button = document.getElementById('run-quickcheck');
+    const results = document.getElementById('quickcheck-results');
+    button.disabled = true;
+    results.textContent = 'Compiling and running QuickCheck...';
+    try {
+      const response = await fetch('http://localhost:3001/api/quickcheck', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: editorText('quickcheck') })
+      });
+      const data = await response.json();
+      results.textContent = data.output || data.error || 'No output returned.';
+    } catch (error) {
+      results.textContent = 'Cannot reach the backend at http://localhost:3001. Start it with node backend/server.js.\n' + error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+  document.getElementById('run-fitspec').addEventListener('click', () => {
+    document.getElementById('fitspec-results').textContent = 'FitSpec execution will be connected in Milestone 3.';
   });
   if (window.require && window.require.config) {
     window.require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs' } });
