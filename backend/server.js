@@ -1,99 +1,263 @@
 'use strict';
+
 const http = require('node:http');
 const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const { randomUUID } = require('node:crypto');
 
-const PORT = 3001;
-const IMAGES = { quickcheck: 'specification-lab-quickcheck:local', fitspec: 'specification-lab-fitspec:local' };
-const MAX_SOURCE = 100_000;
-const MAX_OUTPUT = 40_000;
+const PORT = Number(process.env.PORT || 3001);
+const HOST = process.env.HOST || '127.0.0.1';
+const IMAGES = {
+  quickcheck: 'specification-lab-quickcheck:prod-test',
+  fitspec: 'specification-lab-fitspec:prod-test'
+};
+const MAX_SOURCE_BYTES = 100_000;
+const MAX_REQUEST_BYTES = MAX_SOURCE_BYTES + 1024;
+const MAX_OUTPUT_BYTES = 40_000;
 const RUN_TIMEOUT_MS = { quickcheck: 25_000, fitspec: 90_000 };
-const ALLOWED_ORIGINS = new Set(['http://localhost:5500', 'http://127.0.0.1:5500']);
+const MAX_CONCURRENT = 2;
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX = 8;
+const ALLOWED_ORIGINS = new Set(
+  (process.env.ALLOWED_ORIGINS || 'http://localhost:5500,http://127.0.0.1:5500')
+    .split(',').map(s => s.trim()).filter(Boolean)
+);
 const reference = path.join(__dirname, 'Reference.hs');
 
-function execute(folder, kind) {
-  return new Promise((resolve) => {
-    const args = [
-      'run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL',
-      '--security-opt', 'no-new-privileges', '--pids-limit', '64',
-      '--memory', '512m', '--cpus', '1', '--user', '65534:65534',
-      '--tmpfs', '/tmp:rw,exec,nosuid,nodev,size=192m,mode=1777',
-      '--mount', `type=bind,source=${folder},target=/work,readonly`,
-      '--workdir', '/tmp', IMAGES[kind],
-      'sh', '-c',
-      'ghc -v0 -O0 -outputdir /tmp -i/work -o /tmp/student /work/Main.hs /work/Reference.hs && /tmp/student'
-    ];
-    const containerName = `spec-lab-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    args.splice(2, 0, '--name', containerName);
-    const child = spawn('docker', args, { windowsHide: true });
-    const stopContainer = () => {
-      const cleanup = spawn('docker', ['rm', '-f', containerName], { windowsHide: true, stdio: 'ignore' });
-      cleanup.on('error', () => {});
-      child.kill();
-    };
-    let output = '';
-    let exceeded = false;
-    let timedOut = false;
-    const add = (chunk) => {
-      const str = chunk.toString('utf8');
-      output += str.slice(0, Math.max(0, MAX_OUTPUT - output.length));
-      if (output.length >= MAX_OUTPUT && !exceeded) {
-        exceeded = true;
-        stopContainer();
-      }
-    };
-    child.stdout.on('data', add);
-    child.stderr.on('data', add);
-    const timer = setTimeout(() => { timedOut = true; stopContainer(); }, RUN_TIMEOUT_MS[kind]);
-    child.on('error', (error) => { clearTimeout(timer); resolve({ ok: false, output: `Unable to launch Docker: ${error.message}` }); });
-    child.on('close', (code) => {
+let activeRuns = 0;
+const rateBuckets = new Map();
+
+function json(res, status, value) {
+  if (res.destroyed || res.writableEnded) return;
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.end(JSON.stringify(value));
+}
+
+function allowRequest(ip) {
+  const now = Date.now();
+  // Fixed-window limit; intended for a directly connected API or a trusted proxy
+  // that enforces its own IP-based limits. Never trust X-Forwarded-For here.
+  let bucket = rateBuckets.get(ip);
+  if (!bucket || now >= bucket.resetAt) {
+    bucket = { count: 0, resetAt: now + RATE_WINDOW_MS };
+    rateBuckets.set(ip, bucket);
+  }
+  bucket.count += 1;
+  return bucket.count <= RATE_MAX;
+}
+
+const rateCleanup = setInterval(() => {
+  const now = Date.now();
+  for (const [ip, bucket] of rateBuckets) {
+    if (now >= bucket.resetAt) rateBuckets.delete(ip);
+  }
+}, RATE_WINDOW_MS);
+rateCleanup.unref();
+
+function runCommand(command, args, timeoutMs = 10_000) {
+  return new Promise(resolve => {
+    const child = spawn(command, args, { windowsHide: true, stdio: 'ignore' });
+    let settled = false;
+    const finish = ok => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
-      resolve({ ok: code === 0 && !timedOut && !exceeded,
-        output: output + (timedOut ? '\nExecution timed out.' : exceeded ? '\nOutput limit reached.' : '') });
-    });
+      resolve(ok);
+    };
+    const timer = setTimeout(() => {
+      child.kill();
+      finish(false);
+    }, timeoutMs);
+    child.once('error', () => finish(false));
+    child.once('close', code => finish(code === 0));
   });
+}
+
+async function execute(folder, kind, signal) {
+  const containerName = `spec-lab-${randomUUID()}`;
+  const args = [
+    'run', '--rm', '--name', containerName,
+    '--network', 'none', '--read-only',
+    '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
+    '--pids-limit', '64', '--memory', '512m', '--memory-swap', '512m',
+    '--cpus', '1', '--user', '65534:65534',
+    '--tmpfs', '/tmp:rw,exec,nosuid,nodev,size=192m,mode=1777',
+    '--mount', `type=bind,source=${folder},target=/work,readonly`,
+    '--workdir', '/tmp', IMAGES[kind],
+    'sh', '-c',
+    'ghc -v0 -O0 -outputdir /tmp -i/work -o /tmp/student /work/Main.hs /work/Reference.hs && /tmp/student'
+  ];
+
+  let output = '';
+  let outputBytes = 0;
+  let reason = null;
+  let child;
+  let closed = false;
+  let resolveClose;
+  const closePromise = new Promise(resolve => { resolveClose = resolve; });
+
+  const addOutput = chunk => {
+    const remaining = MAX_OUTPUT_BYTES - outputBytes;
+    if (remaining > 0) {
+      const kept = chunk.subarray(0, remaining);
+      output += kept.toString('utf8');
+      outputBytes += kept.length;
+    }
+    if (chunk.length > remaining) terminate('output');
+  };
+
+  // A container can be created slightly after the Docker CLI starts. Cleanup
+  // retries to cover that race; the unique name avoids affecting other jobs.
+  let cleanupPromise = null;
+  function cleanupContainer() {
+    if (cleanupPromise) return cleanupPromise;
+    cleanupPromise = (async () => {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await runCommand('docker', ['rm', '-f', containerName], 5_000);
+        if (closed) break;
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    })();
+    return cleanupPromise;
+  }
+
+  function terminate(why) {
+    if (reason) return;
+    reason = why;
+    void cleanupContainer();
+    // Docker CLI is killed after the removal attempt to avoid leaving an
+    // attached process indefinitely. A second cleanup follows below.
+  }
+
+  const abort = () => terminate('aborted');
+  if (signal.aborted) return { ok: false, output: 'Request cancelled.' };
+  signal.addEventListener('abort', abort, { once: true });
+
+  let timer;
+  try {
+    child = spawn('docker', args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    child.stdout.on('data', addOutput);
+    child.stderr.on('data', addOutput);
+    child.once('error', err => {
+      console.error('Docker launch error:', err);
+      if (!reason) reason = 'launch';
+      closed = true;
+      resolveClose(null);
+    });
+    child.once('close', code => {
+      closed = true;
+      resolveClose(code);
+    });
+    timer = setTimeout(() => terminate('timeout'), RUN_TIMEOUT_MS[kind]);
+    if (signal.aborted) terminate('aborted');
+
+    // Wait for either Docker to exit or a cancellation to trigger cleanup.
+    const code = await Promise.race([
+      closePromise,
+      new Promise(resolve => {
+        const interval = setInterval(() => {
+          if (reason) {
+            clearInterval(interval);
+            resolve(null);
+          } else if (closed) clearInterval(interval);
+        }, 50);
+        interval.unref?.();
+        closePromise.then(() => clearInterval(interval));
+      })
+    ]);
+
+    if (reason) {
+      await cleanupContainer();
+      if (!closed) child.kill();
+      await Promise.race([closePromise, new Promise(resolve => setTimeout(resolve, 2_000))]);
+      // One final attempt in case the container appeared after the first rm.
+      await runCommand('docker', ['rm', '-f', containerName], 5_000);
+      const suffix = reason === 'timeout' ? '\nExecution timed out.'
+        : reason === 'output' ? '\nOutput limit reached.'
+        : reason === 'aborted' ? '\nRequest cancelled.'
+        : '\nUnable to start execution.';
+      return { ok: false, output: output + suffix };
+    }
+    return { ok: code === 0, output };
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener('abort', abort);
+  }
 }
 
 const server = http.createServer(async (req, res) => {
   const origin = req.headers.origin;
   if (ALLOWED_ORIGINS.has(origin)) res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Vary', 'Origin');
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.writeHead(ALLOWED_ORIGINS.has(origin) ? 204 : 403).end();
+    json(res, ALLOWED_ORIGINS.has(origin) ? 204 : 403, {});
     return;
   }
-  const kind = req.url === '/api/quickcheck' ? 'quickcheck' : req.url === '/api/fitspec' ? 'fitspec' : null;
-  if (req.method !== 'POST' || !kind) {
-    res.writeHead(404).end(JSON.stringify({ error: 'Not found' })); return;
+
+  const kind = req.url === '/api/quickcheck' ? 'quickcheck'
+    : req.url === '/api/fitspec' ? 'fitspec' : null;
+  if (req.method !== 'POST' || !kind) return json(res, 404, { error: 'Not found' });
+  if (origin && !ALLOWED_ORIGINS.has(origin)) return json(res, 403, { error: 'Origin not allowed' });
+  if (!allowRequest(req.socket.remoteAddress || 'unknown')) return json(res, 429, { error: 'Too many requests. Try again shortly.' });
+  if (activeRuns >= MAX_CONCURRENT) return json(res, 503, { error: 'Server busy. Try again shortly.' });
+  if (req.headers['content-type']?.split(';')[0].trim().toLowerCase() !== 'application/json') {
+    return json(res, 415, { error: 'Content-Type must be application/json' });
   }
-  if (origin && !ALLOWED_ORIGINS.has(origin)) {
-    res.writeHead(403).end(JSON.stringify({ error: 'Origin not allowed' })); return;
-  }
-  let raw = '';
+
+  activeRuns++;
+  const controller = new AbortController();
+  let folder;
+  const onResponseClose = () => {
+    if (!res.writableEnded) controller.abort();
+  };
+  res.once('close', onResponseClose);
   try {
+    const chunks = [];
+    let bytes = 0;
     for await (const chunk of req) {
-      raw += chunk.toString();
-      if (raw.length > MAX_SOURCE + 1024) throw new Error('Submission too large');
+      bytes += chunk.length;
+      if (bytes > MAX_REQUEST_BYTES) {
+        json(res, 413, { error: 'Submission too large' });
+        return;
+      }
+      chunks.push(chunk);
     }
-    const { code } = JSON.parse(raw);
-    if (typeof code !== 'string' || !code.trim() || code.length > MAX_SOURCE) throw new Error('Invalid Haskell source');
-    const folder = await fs.mkdtemp(path.join(os.tmpdir(), 'spec-lab-'));
-    try {
-      await fs.writeFile(path.join(folder, 'Main.hs'), code, { mode: 0o644 });
-      await fs.copyFile(reference, path.join(folder, 'Reference.hs'));
-      // Docker Desktop bind mounts may need readable host files.
-      const result = await execute(folder, kind);
-      res.writeHead(200).end(JSON.stringify(result));
-    } finally {
-      await fs.rm(folder, { recursive: true, force: true });
+    if (controller.signal.aborted) return;
+    let payload;
+    try { payload = JSON.parse(Buffer.concat(chunks).toString('utf8')); }
+    catch { return json(res, 400, { error: 'Invalid JSON' }); }
+    const code = payload?.code;
+    if (typeof code !== 'string' || !code.trim() || Buffer.byteLength(code, 'utf8') > MAX_SOURCE_BYTES) {
+      return json(res, 400, { error: 'Invalid Haskell source' });
     }
+
+    folder = await fs.mkdtemp(path.join(os.tmpdir(), 'spec-lab-'));
+    await fs.writeFile(path.join(folder, 'Main.hs'), code, { mode: 0o644 });
+    await fs.copyFile(reference, path.join(folder, 'Reference.hs'));
+    if (controller.signal.aborted) return;
+    const result = await execute(folder, kind, controller.signal);
+    if (!controller.signal.aborted) json(res, 200, result);
   } catch (error) {
-    res.writeHead(400).end(JSON.stringify({ error: error.message }));
+    console.error('Execution request failed:', error);
+    if (!controller.signal.aborted) json(res, 500, { error: 'Internal execution error' });
+  } finally {
+    res.off('close', onResponseClose);
+    if (folder) {
+      try { await fs.rm(folder, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); }
+      catch (error) { console.error('Temporary folder cleanup failed:', error); }
+    }
+    activeRuns--;
   }
 });
-server.listen(PORT, '127.0.0.1', () => console.log(`QuickCheck + FitSpec API listening at http://localhost:${PORT}`));
+
+server.requestTimeout = 15_000;
+server.headersTimeout = 10_000;
+server.listen(PORT, HOST, () => {
+  console.log(`QuickCheck + FitSpec API listening at http://${HOST}:${PORT}`);
+});
