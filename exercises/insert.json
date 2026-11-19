@@ -1,0 +1,6 @@
+{
+  "id": "insert",
+  "title": "Inserting into a sorted list",
+  "prompt": "Formulate an inserting function's description and properties. Only the type for the sorting function itself is given. Define any helper functions you require when needed. You get bonus points if you also formulate a generator for better input.",
+  "type": "insert :: Int -> [Int] -> [Int]"
+}

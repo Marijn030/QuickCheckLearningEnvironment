@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Specification Lab</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar"><div class="brand">Specification <span>Lab</span></div><div class="top-note">QuickCheck + FitSpec</div></header>
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="eyebrow">EXERCISE 01</div>
+      <h1>Inserting into a sorted list</h1>
+      <p class="assignment">Formulate an inserting function's description and properties. Only the type for the sorting function itself is given. Define any helper functions you require when needed. You get bonus points if you also formulate a generator for better input.</p>
+      <div class="type-label">Function type</div>
+      <pre class="type">insert :: Int -> [Int] -> [Int]</pre>
+      <div class="hint">Your work is saved automatically in this browser.</div>
+    </aside>
+    <section class="workspace">
+      <nav class="steps" aria-label="Learning stages">
+        <button class="step active" data-stage="description">1 <span>Description</span></button>
+        <button class="step" data-stage="quickcheck">2 <span>QuickCheck</span></button>
+        <button class="step" data-stage="fitspec">3 <span>FitSpec</span></button>
+      </nav>
+      <section class="panel" id="description-panel">
+        <div class="panel-header"><div><div class="eyebrow">STAGE 1</div><h2>Write your description</h2><p>Describe what the function should do in your own words.</p></div></div>
+        <label for="description">Your specification</label>
+        <textarea id="description" class="description-editor" spellcheck="true" placeholder="Write your description here..."></textarea>
+      </section>
+      <section class="panel hidden" id="quickcheck-panel">
+        <div class="panel-header"><div><div class="eyebrow">STAGE 2</div><h2>QuickCheck properties</h2><p>Write Haskell properties returning Bool. Define any helpers and an optional generator. Include a main function that runs your properties.</p></div></div>
+        <div class="editor-toolbar"><span>Haskell · QuickCheck</span><span id="quickcheck-status">Saved locally</span></div>
+        <div id="quickcheck-editor" class="code-editor"></div>
+        <button class="run" id="run-quickcheck">▶ Run QuickCheck</button>
+        <div class="results" id="quickcheck-results" role="status" aria-live="polite">No run yet.</div>
+      </section>
+      <section class="panel hidden" id="fitspec-panel">
+        <div class="panel-header"><div><div class="eyebrow">STAGE 3</div><h2>FitSpec properties</h2><p>Independently write your FitSpec-compatible property list, including any helpers and the FitSpec main function.</p></div></div>
+        <div class="editor-toolbar"><span>Haskell · FitSpec</span><span id="fitspec-status">Saved locally</span></div>
+        <div id="fitspec-editor" class="code-editor"></div>
+        <button class="run" id="run-fitspec">▶ Run FitSpec</button>
+        <div class="results" id="fitspec-results" role="status" aria-live="polite">No run yet.</div>
+      </section>
+      <footer class="controls"><button id="previous" class="secondary">← Previous</button><span id="save-status">Saved locally</span><button id="next" class="primary">Next →</button></footer>
+    </section>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
