@@ -1,4 +1,3 @@
-
 name: Deploy frontend to GitHub Pages
 
 on:
@@ -17,14 +16,20 @@ concurrency:
 
 jobs:
   deploy:
+    runs-on: ubuntu-latest
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Verify frontend files
+        run: |
+          ls -la frontend
+          test -f frontend/index.html
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
