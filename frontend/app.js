@@ -24,8 +24,48 @@
   document.getElementById('previous').addEventListener('click', () => setStage(stages[Math.max(0, stages.indexOf(stage) - 1)]));
   document.getElementById('next').addEventListener('click', () => setStage(stages[Math.min(stages.length - 1, stages.indexOf(stage) + 1)]));
   const initialCode = {
-    quickcheck: 'import Test.QuickCheck\nimport Reference (insert)\n\n-- Write your properties and any helper functions here.\n\nmain :: IO ()\nmain = do\n  -- Run your properties with quickCheck.\n  pure ()\n',
-    fitspec: 'import Test.FitSpec\nimport Reference (insert)\n\n-- Define your helpers and properties here.\n\nproperties :: (Int -> [Int] -> [Int]) -> [Property]\nproperties f = []\n\nmain :: IO ()\nmain = mainWith args { names = ["insert x xs"], nMutants = 100, nTests = 100, timeout = 0 } (insert :: Int -> [Int] -> [Int]) properties\n'
+    quickcheck: 
+`import Test.QuickCheck
+import Reference (insert)
+
+-- Define your helper functions here.
+
+
+-- Define your properties here
+placeholder :: Int -> [Int] -> Bool
+placeholder x xs = True
+
+main :: IO ()
+main = do
+  -- Run your properties with QuickCheck.
+  quickCheck placeholder`
+  , fitspec: 
+`import Test.FitSpec
+import Reference (insert)
+
+-- Define your helper functions here.
+
+
+-- Define your properties in the list properties, 
+-- comma-separated and in the form
+-- property $ \\x xs -> ...,
+
+properties :: (Int -> [Int] -> [Int]) -> [Property]
+properties f =
+  [
+    property $ \\(x :: Int) (xs :: [Int]) -> True
+  ]
+
+main :: IO ()
+main =
+  mainWith args
+    { names = ["insert x xs"]
+    , nMutants = 100
+    , nTests = 100
+    , timeout = 0
+    }
+    (insert :: Int -> [Int] -> [Int])
+    properties`
   };
   function setupEditor(name) {
     const value = load(name) || initialCode[name];
