@@ -29,7 +29,7 @@ docker info
 Open PowerShell or the VS Code terminal and navigate to the project root:
 
 ```powershell
-cd "C:\Users\marij\Documents\GitHub\QuickCheckLearningEnvironment"
+cd "..\QuickCheckLearningEnvironment"
 ```
 
 ### 3. Start the backend (Node.js)
@@ -57,7 +57,7 @@ Keep this terminal running.
 Open a **second terminal** and run:
 
 ```powershell
-cd "C:\Users\marij\Documents\GitHub\QuickCheckLearningEnvironment\frontend"
+cd "..\QuickCheckLearningEnvironment\frontend"
 python -m http.server 5500
 ```
 
