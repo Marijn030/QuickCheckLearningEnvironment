@@ -12,7 +12,7 @@
     <aside class="sidebar">
       <div class="eyebrow">EXERCISE 01</div>
       <h1>Inserting into a sorted list</h1>
-      <p class="assignment">Formulate an inserting function's description and properties. Only the type for the sorting function itself is given. Define any helper functions you require when needed. You get bonus points if you also formulate a generator for better input.</p>
+      <p class="assignment">Formulate an inserting function's description and properties. Only the type signature for the insert function itself is given. Define any helper functions you require when needed. You get bonus points if you also formulate a generator for better input.</p>
       <div class="type-label">Function type</div>
       <pre class="type">insert :: Int -> [Int] -> [Int]</pre>
       <div class="hint">Your work is saved automatically in this browser.</div>
@@ -32,11 +32,12 @@
         <div class="panel-header"><div><div class="eyebrow">STAGE 2</div><h2>QuickCheck properties</h2><p>Write Haskell properties returning Bool. Define any helpers and an optional generator. Include a main function that runs your properties.</p></div></div>
         <div class="editor-toolbar"><span>Haskell · QuickCheck</span><span id="quickcheck-status">Saved locally</span></div>
         <div id="quickcheck-editor" class="code-editor"></div>
-        <button class="run" id="run-quickcheck">▶ Run QuickCheck</button>
+        <button class="run" id="run-quickcheck">▶ Run QuickCheck</button> <button class="secondary" id="check-coverage">Check property coverage &amp; receive feedback and hints</button>
         <div class="results" id="quickcheck-results" role="status" aria-live="polite">No run yet.</div>
+        <section class="feedback" id="coverage-feedback" aria-live="polite"><h3>Properties feedback</h3><p>Run QuickCheck on your properties, then click <strong>Check property coverage</strong> for feedback and hints.</p></section>
       </section>
       <section class="panel hidden" id="fitspec-panel">
-        <div class="panel-header"><div><div class="eyebrow">STAGE 3</div><h2>FitSpec properties</h2><p>Independently write your FitSpec-compatible property list, including any helpers and the FitSpec main function.</p></div></div>
+        <div class="panel-header"><div><div class="eyebrow">STAGE 3</div><h2>FitSpec properties</h2><p>Transform your QuickCheck properties by replacing direct calls to insert with a function argument f. FitSpec explores surviving mutants and potentially redundant properties; its results are not formal proofs.</p></div></div>
         <div class="editor-toolbar"><span>Haskell · FitSpec</span><span id="fitspec-status">Saved locally</span></div>
         <div id="fitspec-editor" class="code-editor"></div>
         <button class="run" id="run-fitspec">▶ Run FitSpec</button>
@@ -46,6 +47,6 @@
     </section>
   </main>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=coverage3"></script>
 </body>
 </html>

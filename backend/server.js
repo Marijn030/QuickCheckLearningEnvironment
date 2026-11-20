@@ -25,6 +25,7 @@ const ALLOWED_ORIGINS = new Set(
     .split(',').map(s => s.trim()).filter(Boolean)
 );
 const reference = path.join(__dirname, 'Reference.hs');
+const { runCoverage } = require('./coverage');
 
 let activeRuns = 0;
 const rateBuckets = new Map();
@@ -200,7 +201,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  const kind = req.url === '/api/quickcheck' ? 'quickcheck'
+  const kind = req.url === '/api/coverage' ? 'coverage'
+    : req.url === '/api/quickcheck' ? 'quickcheck'
     : req.url === '/api/fitspec' ? 'fitspec' : null;
   if (req.method !== 'POST' || !kind) return json(res, 404, { error: 'Not found' });
   if (origin && !ALLOWED_ORIGINS.has(origin)) return json(res, 403, { error: 'Origin not allowed' });
@@ -241,7 +243,9 @@ const server = http.createServer(async (req, res) => {
     await fs.writeFile(path.join(folder, 'Main.hs'), code, { mode: 0o644 });
     await fs.copyFile(reference, path.join(folder, 'Reference.hs'));
     if (controller.signal.aborted) return;
-    const result = await execute(folder, kind, controller.signal);
+    const result = kind === 'coverage'
+      ? await runCoverage({ folder, source: code, execute, signal: controller.signal })
+      : await execute(folder, kind, controller.signal);
     if (!controller.signal.aborted) json(res, 200, result);
   } catch (error) {
     console.error('Execution request failed:', error);
