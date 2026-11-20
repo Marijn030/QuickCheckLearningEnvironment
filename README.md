@@ -24,26 +24,42 @@ You can verify this in PowerShell:
 docker info
 ```
 
-### 2. Open the project directory
+### 2. Build the Docker images (first-time setup)
 
-Open PowerShell or the VS Code terminal and navigate to the project root:
+The application uses two Docker images to execute Haskell code:
+
+- `specification-lab-quickcheck:prod-test` — runs QuickCheck properties and checks requirement coverage.
+- `specification-lab-fitspec:prod-test` — runs FitSpec to investigate specification completeness and minimality.
+
+When running the project for the first time, these images must be built locally from the Dockerfiles included in the repository.
+
+Open PowerShell in the project root and run:
 
 ```powershell
-cd "..\QuickCheckLearningEnvironment"
+docker build -t specification-lab-quickcheck:prod-test -f Dockerfile.quickcheck.prod-test .
+docker build -t specification-lab-fitspec:prod-test -f Dockerfile.fitspec.prod-test .
 ```
+
+**Note:** These commands assume the Dockerfiles are named `Dockerfile.quickcheck.prod-test` and `Dockerfile.fitspec.prodtest` and are located in the project root. Adjust the paths if your repository uses a different structure.
+
+Verify that the images were created:
+
+```powershell
+docker images
+```
+
+You should see both images in the output.
+
+**Important:** The image names and tags must match those configured in `backend/server.js` and the coverage checker. If the backend uses `:local` rather than `:prod-test`, either update the backend configuration or build the images with the corresponding tags.
+
+You only need to rebuild the images when setting up the project for the first time or after changing the Dockerfiles or their dependencies.
 
 ### 3. Start the backend (Node.js)
 
-In your first terminal, run:
+Once the Docker images have been built, start the backend:
 
 ```powershell
 node .\backend\server.js
-```
-
-If the backend file is named `server(1).js`, use:
-
-```powershell
-node '.\backend\server(1).js'
 ```
 
 The backend runs at:
@@ -51,6 +67,8 @@ The backend runs at:
 http://localhost:3001
 
 Keep this terminal running.
+
+Continue with the frontend setup described in the next section.
 
 ### 4. Start the frontend (Python)
 
@@ -99,8 +117,8 @@ docker images
 
 The backend should reference existing QuickCheck and FitSpec images, such as:
 
-- `specification-lab-quickcheck:local`
-- `specification-lab-fitspec:local`
+- `specification-lab-quickcheck:prod-test`
+- `specification-lab-fitspec:prod-test`
 
 **Port already in use**
 
