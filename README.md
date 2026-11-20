@@ -111,3 +111,8 @@ Check whether another frontend or backend server is already running. Stop the pr
 The frontend can also be accessed through GitHub Pages. However, QuickCheck and FitSpec execution requires a separately running backend.
 
 For full functionality during local development, use **http://localhost:5500** with the Node.js backend and Docker Desktop running.
+## Exercises
+
+Choose **01 · Insert** or **02 · Sort** in the left sidebar. Each exercise has its own three stages (description, QuickCheck, FitSpec), independently saved in the browser. The backend selects a separate hidden `Reference` module for each exercise. For Sort, import `Reference (sort)`; do not implement `sort` in student submissions.
+
+The Sort coverage checker assesses sorted output, length preservation, and permutation/multiplicity preservation. It uses conservative recognition and fault probes; feedback is not a formal proof.

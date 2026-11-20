@@ -7,7 +7,7 @@ const path = require('node:path');
 
 const requirements = [
   { id: 'ordering', title: 'Ordering', hint: ['If the input is sorted, what must be true of the output?', 'Think about neighboring elements in the resulting list.', 'Try a property involving isSorted xs and isSorted (insert x xs).'] },
-  { id: 'length', title: 'Length', hint: ['How many elements should insertion add?', 'Compare the length before and after insertion.', 'Try length (insert x xs) == length xs + 1.'] },
+  { id: 'length', title: 'Size', hint: ['How many elements should insertion add?', 'Compare the length before and after insertion.', 'Try length (insert x xs) == length xs + 1.'] },
   { id: 'inserted', title: 'Inserting', hint: ['How can you check that a value appears in a list?', 'The elem function may help.', 'Try x `elem` insert x xs.'] },
   { id: 'elements', title: 'Original elements', hint: ['Could an implementation lose an existing element?', 'Remember to consider duplicate values.', 'Consider comparing element counts or sorted copies of both lists.'] },
   { id: 'relative', title: 'Original order', hint: ['Could insertion rearrange existing elements?', 'Think about the original list as a subsequence of the output.', 'A subsequence helper can test whether elements retain their relative order.'] }

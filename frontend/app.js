@@ -1,6 +1,13 @@
 (() => {
   const stages = ['description', 'quickcheck', 'fitspec'];
-  const storagePrefix = 'specification-lab:insert:v1:';
+  const exercises = {
+    insert: { title: 'Inserting into a sorted list', prompt: 'Formulate an inserting function’s description and properties. Only the type signature is provided. Define helpers as needed. A useful generator at QuickCheck can earn bonus points.', type: 'insert :: Int -> [Int] -> [Int]' },
+    sort: { title: 'Sorting a list', prompt: 'Formulate a sorting function’s description and properties. Only the type signature is provided. Define helpers as needed. A useful generator at QuickCheck can earn bonus points.', type: 'sort :: [Int] -> [Int]' }
+  };
+  const exerciseSelect = document.getElementById('exercise-select');
+  let exercise = localStorage.getItem('specification-lab:exercise') === 'sort' ? 'sort' : 'insert';
+  let storagePrefix = `specification-lab:${exercise}:v1:`;
+
   const store = (key, value) => { try { localStorage.setItem(storagePrefix + key, value); } catch (_) {} };
   const load = key => { try { return localStorage.getItem(storagePrefix + key) || ''; } catch (_) { return ''; } };
   const description = document.getElementById('description');
@@ -23,7 +30,7 @@
   document.querySelectorAll('[data-stage]').forEach(button => button.addEventListener('click', () => setStage(button.dataset.stage)));
   document.getElementById('previous').addEventListener('click', () => setStage(stages[Math.max(0, stages.indexOf(stage) - 1)]));
   document.getElementById('next').addEventListener('click', () => setStage(stages[Math.min(stages.length - 1, stages.indexOf(stage) + 1)]));
-  const initialCode = {
+  const insertCode = {
     quickcheck: 
 `import Test.QuickCheck
 import Reference (insert)
@@ -67,6 +74,72 @@ main =
     (insert :: Int -> [Int] -> [Int])
     properties`
   };
+  const sortCode = {
+    quickcheck: `import Test.QuickCheck
+import Reference (sort)
+
+-- Define your helper functions here.
+
+
+-- Define your properties here
+placeholder :: [Int] -> Bool
+placeholder xs = True
+
+main :: IO ()
+main = do
+  quickCheck placeholder`,
+    fitspec: `import Test.FitSpec
+import Reference (sort)
+
+-- Define your properties in the list properties, 
+-- comma-separated and in the form
+-- property $ \\xs -> ...,
+
+properties :: ([Int] -> [Int]) -> [Property]
+properties f =
+  [ property $ \(xs :: [Int]) -> True
+  ]
+
+main :: IO ()
+main =
+  mainWith args
+    { names = ["sort xs"]
+    , nMutants = 100
+    , nTests = 100
+    , timeout = 0
+    }
+    (sort :: [Int] -> [Int])
+    properties`
+  };
+  const initialCode = exercise === 'sort' ? sortCode : insertCode;
+  function updateExerciseDisplay() {
+    exerciseSelect.value = exercise;
+    document.getElementById('exercise-number').textContent = exercise === 'sort' ? 'EXERCISE 02' : 'EXERCISE 01';
+    document.getElementById('exercise-title').textContent = exercises[exercise].title;
+    document.getElementById('exercise-prompt').textContent = exercises[exercise].prompt;
+    document.getElementById('exercise-type').textContent = exercises[exercise].type;
+  }
+  updateExerciseDisplay();
+  exerciseSelect.addEventListener('change', () => {
+    exercise = exerciseSelect.value;
+    localStorage.setItem('specification-lab:exercise', exercise);
+    storagePrefix = `specification-lab:${exercise}:v1:`;
+    updateExerciseDisplay();
+    description.value = load('description');
+    const templates = exercise === 'sort' ? sortCode : insertCode;
+    for (const name of ['quickcheck','fitspec']) {
+      const value = load(name) || templates[name];
+      if (editors[name]?.setValue) editors[name].setValue(value);
+      else {
+        const textarea = document.querySelector('#' + name + '-editor textarea');
+        if (textarea) textarea.value = value;
+      }
+      document.getElementById(name + '-results').textContent = 'No run yet.';
+    }
+    document.getElementById('coverage-feedback').innerHTML = '<h3>Properties feedback</h3><p>Run QuickCheck, then check coverage for feedback and hints.</p>';
+    setStage('description');
+    saved();
+  });
   function setupEditor(name) {
     const value = load(name) || initialCode[name];
     if (window.monaco) {
@@ -102,7 +175,7 @@ main =
       const response = await fetch('http://localhost:3001/api/quickcheck', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: editorText('quickcheck') })
+        body: JSON.stringify({ code: editorText('quickcheck'), exercise })
       });
       const data = await response.json();
       results.textContent = data.output || data.error || 'No output returned.';
@@ -119,12 +192,12 @@ main =
     coverageButton.disabled = true;
     coveragePanel.replaceChildren();
     const status = document.createElement('p');
-    status.textContent = 'Checking properties against the correct insert and five faulty versions. This can take a minute...';
+    status.textContent = 'Checking properties against the correct implementation and targeted faulty versions. This can take a minute...';
     coveragePanel.appendChild(status);
     try {
       const response = await fetch('http://localhost:3001/api/coverage', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: editorText('quickcheck') })
+        body: JSON.stringify({ code: editorText('quickcheck'), exercise })
       });
       const data = await response.json();
       coveragePanel.replaceChildren();
@@ -186,7 +259,7 @@ main =
       const response = await fetch('http://localhost:3001/api/fitspec', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: editorText('fitspec') })
+        body: JSON.stringify({ code: editorText('fitspec'), exercise })
       });
       const data = await response.json();
       results.textContent = data.output || data.error || 'No output returned.';
