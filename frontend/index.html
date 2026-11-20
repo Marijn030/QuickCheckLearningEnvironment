@@ -7,26 +7,29 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="topbar"><div class="brand">Specification <span>Lab</span></div><div class="top-note">QuickCheck + FitSpec</div></header>
+  <div class="institution-bar"><div class="institution-inner"><span class="institution-mark" aria-hidden="true">✳</span><span>QUICKCHECK LEARNING ENVIRONMENT</span><span class="institution-right">PROGRAM SPECIFICATION</span></div></div>
+  <header class="topbar"><div class="topbar-inner"><div class="brand-group"><div class="brand-icon" aria-hidden="true">[ ]</div><div><div class="brand">Specification <span>Lab</span></div><div class="brand-subtitle">Learning QuickCheck for Program Specification</div></div></div><div class="top-note"><span class="top-note-dot"></span> Interactive Haskell exercises</div></div></header>
+  <div class="course-strip"><div class="course-strip-inner"><span class="course-strip-label">COURSE WORKSPACE</span><span class="course-strip-divider"></span><span>Properties for program specification</span><span class="course-strip-chevron">/</span><strong>Exercises</strong></div></div>
+  <div class="page-heading"><div class="page-heading-inner"><div class="page-kicker">PRACTICAL ASSIGNMENTS IN HASKELL</div><h2>Learn to specify programs with QuickCheck properties</h2><p>Explore program behavior, formulate testable properties, and refine your specifications through guided exercises.</p></div></div>
   <main class="layout">
-    <aside class="sidebar">
+    <aside class="sidebar"><div class="sidebar-heading"><span class="sidebar-heading-icon">01—02</span><span>YOUR EXERCISES</span></div>
       <div class="eyebrow" id="exercise-number">EXERCISE 01</div>
       <label for="exercise-select">Choose exercise</label>
       <select id="exercise-select" class="exercise-select" aria-label="Choose exercise"><option value="insert">01 · Insert</option><option value="sort">02 · Sort</option></select>
       <h1 id="exercise-title">Inserting into a sorted list</h1>
       <p class="assignment" id="exercise-prompt">Formulate an inserting function's description and properties. Only the type signature for the insert function itself is given. Define any helper functions you require when needed. You get bonus points if you also formulate a generator for better input.</p>
-      <div class="type-label">Function type</div>
+      <div class="type-label"><span class="type-label-line"></span> FUNCTION SIGNATURE</div>
       <pre class="type" id="exercise-type">insert :: Int -> [Int] -> [Int]</pre>
-      <div class="hint">Your work is saved automatically in this browser.</div>
+      <div class="hint"><span class="hint-symbol">✓</span><span>Your work is saved automatically in this browser.</span></div>
     </aside>
-    <section class="workspace">
+    <section class="workspace"><div class="workspace-heading"><span class="workspace-heading-left"><span class="workspace-heading-square"></span> ASSIGNMENT WORKSPACE</span><span class="workspace-heading-right">3 learning stages</span></div>
       <nav class="steps" aria-label="Learning stages">
-        <button class="step active" data-stage="description">1 <span>Description</span></button>
-        <button class="step" data-stage="quickcheck">2 <span>QuickCheck</span></button>
-        <button class="step" data-stage="fitspec">3 <span>FitSpec</span></button>
+        <button class="step active" data-stage="description"><span class="step-number">01</span> <span>Description</span></button>
+        <button class="step" data-stage="quickcheck"><span class="step-number">02</span> <span>QuickCheck</span></button>
+        <button class="step" data-stage="fitspec"><span class="step-number">03</span> <span>FitSpec</span></button>
       </nav>
       <section class="panel" id="description-panel">
-        <div class="panel-header"><div><div class="eyebrow">STAGE 1</div><h2>Write your description</h2><p>Describe what the function should do in your own words.</p></div></div>
+        <div class="panel-header"><div><div class="eyebrow">STAGE 1</div><h2>Function description</h2><p>Describe what the function should do in your own words.</p></div></div>
         <label for="description">Your specification</label>
         <textarea id="description" class="description-editor" spellcheck="true" placeholder="Write your description here..."></textarea>
       </section>
@@ -49,6 +52,6 @@
     </section>
   </main>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"></script>
-  <script src="app.js?v=sort1"></script>
+  <script src="app.js?v=campus2"></script>
 </body>
 </html>

@@ -91,13 +91,17 @@ main = do
     fitspec: `import Test.FitSpec
 import Reference (sort)
 
+-- Define your helper functions here.
+
+
 -- Define your properties in the list properties, 
 -- comma-separated and in the form
 -- property $ \\xs -> ...,
 
 properties :: ([Int] -> [Int]) -> [Property]
 properties f =
-  [ property $ \(xs :: [Int]) -> True
+  [ 
+    property $ \\(xs :: [Int]) -> True
   ]
 
 main :: IO ()
