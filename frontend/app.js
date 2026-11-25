@@ -40,7 +40,7 @@ import Reference (insert)
 
 -- Define your properties here
 placeholder :: Int -> [Int] -> Bool
-placeholder x xs = True
+placeholder x xs = insert x xs == insert x xs
 
 main :: IO ()
 main = do
@@ -58,9 +58,9 @@ import Reference (insert)
 -- property $ \\x xs -> ...,
 
 properties :: (Int -> [Int] -> [Int]) -> [Property]
-properties f =
+properties insert =
   [
-    property $ \\(x :: Int) (xs :: [Int]) -> True
+    property $ \\(x :: Int) (xs :: [Int]) -> insert x xs == insert x xs
   ]
 
 main :: IO ()
@@ -83,7 +83,7 @@ import Reference (sort)
 
 -- Define your properties here
 placeholder :: [Int] -> Bool
-placeholder xs = True
+placeholder xs = sort xs == sort xs
 
 main :: IO ()
 main = do
@@ -99,9 +99,9 @@ import Reference (sort)
 -- property $ \\xs -> ...,
 
 properties :: ([Int] -> [Int]) -> [Property]
-properties f =
+properties sort =
   [ 
-    property $ \\(xs :: [Int]) -> True
+    property $ \\(xs :: [Int]) -> sort xs == sort xs
   ]
 
 main :: IO ()
