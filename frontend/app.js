@@ -1,11 +1,21 @@
-(() => {
+(async () => {
   const stages = ['description', 'quickcheck', 'fitspec'];
-  const exercises = {
-    insert: { title: 'Inserting into a sorted list', prompt: 'Formulate an inserting function’s description and properties. Only the type signature is provided. Define helpers as needed. A useful generator at QuickCheck can earn bonus points.', type: 'insert :: Int -> [Int] -> [Int]' },
-    sort: { title: 'Sorting a list', prompt: 'Formulate a sorting function’s description and properties. Only the type signature is provided. Define helpers as needed. A useful generator at QuickCheck can earn bonus points.', type: 'sort :: [Int] -> [Int]' }
-  };
   const exerciseSelect = document.getElementById('exercise-select');
-  let exercise = localStorage.getItem('specification-lab:exercise') === 'sort' ? 'sort' : 'insert';
+  let catalog;
+  try {
+    const response = await fetch('exercises.json');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    catalog = await response.json();
+    if (!Array.isArray(catalog) || !catalog.length) throw new Error('Empty exercise catalog');
+  } catch (error) {
+    document.getElementById('exercise-prompt').textContent = 'Could not load exercises: ' + error.message;
+    document.querySelectorAll('button, textarea, select').forEach(el => el.disabled = true);
+    return;
+  }
+  const exercises = Object.fromEntries(catalog.map(item => [item.id, item]));
+  exerciseSelect.replaceChildren(...catalog.map(item => new Option(item.label, item.id)));
+  const storedExercise = localStorage.getItem('specification-lab:exercise');
+  let exercise = Object.hasOwn(exercises, storedExercise) ? storedExercise : catalog[0].id;
   let storagePrefix = `specification-lab:${exercise}:v1:`;
 
   const store = (key, value) => { try { localStorage.setItem(storagePrefix + key, value); } catch (_) {} };
@@ -30,95 +40,8 @@
   document.querySelectorAll('[data-stage]').forEach(button => button.addEventListener('click', () => setStage(button.dataset.stage)));
   document.getElementById('previous').addEventListener('click', () => setStage(stages[Math.max(0, stages.indexOf(stage) - 1)]));
   document.getElementById('next').addEventListener('click', () => setStage(stages[Math.min(stages.length - 1, stages.indexOf(stage) + 1)]));
-  const insertCode = {
-    quickcheck: 
-`import Test.QuickCheck
-import Reference (insert)
-
--- Define your helper functions here.
-
-
--- Define your properties here
-placeholder :: Int -> [Int] -> Bool
-placeholder x xs = insert x xs == insert x xs
-
-main :: IO ()
-main = do
-  -- Add your properties here with quickCheck to be able to run and check them
-  quickCheck placeholder`
-  , fitspec: 
-`import Test.FitSpec
-import Reference (insert)
-
--- Define your helper functions here.
-
-
--- Define your properties in the list properties, 
--- comma-separated and in the form
--- property $ \\x xs -> ...,
-
-properties :: (Int -> [Int] -> [Int]) -> [Property]
-properties insert =
-  [
-    property $ \\(x :: Int) (xs :: [Int]) -> insert x xs == insert x xs
-  ]
-
-main :: IO ()
-main =
-  mainWith args
-    { names = ["insert x xs"]
-    , nMutants = 100
-    , nTests = 100
-    , timeout = 0
-    }
-    (insert :: Int -> [Int] -> [Int])
-    properties`
-  };
-  const sortCode = {
-    quickcheck: `import Test.QuickCheck
-import Reference (sort)
-
--- Define your helper functions here.
-
-
--- Define your properties here
-placeholder :: [Int] -> Bool
-placeholder xs = sort xs == sort xs
-
-main :: IO ()
-main = do
-  quickCheck placeholder`,
-    fitspec: `import Test.FitSpec
-import Reference (sort)
-
--- Define your helper functions here.
-
-
--- Define your properties in the list properties, 
--- comma-separated and in the form
--- property $ \\xs -> ...,
-
-properties :: ([Int] -> [Int]) -> [Property]
-properties sort =
-  [ 
-    property $ \\(xs :: [Int]) -> sort xs == sort xs
-  ]
-
-main :: IO ()
-main =
-  mainWith args
-    { names = ["sort xs"]
-    , nMutants = 100
-    , nTests = 100
-    , timeout = 0
-    }
-    (sort :: [Int] -> [Int])
-    properties`
-  };
-  const initialCode = exercise === 'sort' ? sortCode : insertCode;
   function updateExerciseDisplay() {
     exerciseSelect.value = exercise;
-    document.getElementById('exercise-number').textContent = exercise === 'sort' ? 'EXERCISE 02' : 'EXERCISE 01';
     document.getElementById('exercise-title').textContent = exercises[exercise].title;
     document.getElementById('exercise-prompt').textContent = exercises[exercise].prompt;
     document.getElementById('exercise-type').textContent = exercises[exercise].type;
@@ -130,7 +53,7 @@ main =
     storagePrefix = `specification-lab:${exercise}:v1:`;
     updateExerciseDisplay();
     description.value = load('description');
-    const templates = exercise === 'sort' ? sortCode : insertCode;
+    const templates = exercises[exercise].templates;
     for (const name of ['quickcheck','fitspec']) {
       const value = load(name) || templates[name];
       if (editors[name]?.setValue) editors[name].setValue(value);
@@ -141,11 +64,12 @@ main =
       document.getElementById(name + '-results').textContent = 'No run yet.';
     }
     document.getElementById('coverage-feedback').innerHTML = '<h3>Properties feedback</h3><p>Run QuickCheck, then check coverage for feedback and hints.</p>';
-    setStage('description');
+    const savedStage = load('stage');
+    setStage(stages.includes(savedStage) ? savedStage : 'description');
     saved();
   });
   function setupEditor(name) {
-    const value = load(name) || initialCode[name];
+    const value = load(name) || exercises[exercise].templates[name];
     if (window.monaco) {
       editors[name] = monaco.editor.create(document.getElementById(name + '-editor'), {
         value, language: 'haskell', theme: 'vs', fontSize: 14, lineHeight: 23,
@@ -168,12 +92,13 @@ main =
     const editor = editors[name];
     if (editor && typeof editor.getValue === 'function') return editor.getValue();
     const fallback = document.querySelector('#' + name + '-editor textarea');
-    return fallback ? fallback.value : (load(name) || initialCode[name]);
+    return fallback ? fallback.value : (load(name) || exercises[exercise].templates[name]);
   }
   document.getElementById('run-quickcheck').addEventListener('click', async () => {
     const button = document.getElementById('run-quickcheck');
     const results = document.getElementById('quickcheck-results');
     button.disabled = true;
+    exerciseSelect.disabled = true;
     results.textContent = 'Compiling and running QuickCheck...';
     try {
       const response = await fetch('http://localhost:3001/api/quickcheck', {
@@ -187,13 +112,18 @@ main =
       results.textContent = 'Cannot reach the backend at http://localhost:3001. Start it with node backend/server.js.\n' + error.message;
     } finally {
       button.disabled = false;
+      unlockExercise();
     }
   });
   // QuickCheck coverage accepts ordinary properties and `main = do quickCheck name`.
+  function unlockExercise() {
+    exerciseSelect.disabled = ['run-quickcheck', 'check-coverage', 'run-fitspec'].some(id => document.getElementById(id).disabled);
+  }
   const coverageButton = document.getElementById('check-coverage');
   const coveragePanel = document.getElementById('coverage-feedback');
   coverageButton.addEventListener('click', async () => {
     coverageButton.disabled = true;
+    exerciseSelect.disabled = true;
     coveragePanel.replaceChildren();
     const status = document.createElement('p');
     status.textContent = 'Checking properties against the correct implementation and targeted faulty versions. This can take a minute...';
@@ -252,12 +182,13 @@ main =
       const p = document.createElement('p');
       p.textContent = `Coverage request failed: ${error.message}. Make sure the updated backend is running at localhost:3001.`;
       coveragePanel.appendChild(p);
-    } finally { coverageButton.disabled = false; }
+    } finally { coverageButton.disabled = false; unlockExercise(); }
   });
   document.getElementById('run-fitspec').addEventListener('click', async () => {
     const button = document.getElementById('run-fitspec');
     const results = document.getElementById('fitspec-results');
     button.disabled = true;
+    exerciseSelect.disabled = true;
     results.textContent = 'Compiling and running FitSpec (up to 90 seconds)...';
     try {
       const response = await fetch('http://localhost:3001/api/fitspec', {
@@ -271,6 +202,7 @@ main =
       results.textContent = 'Cannot reach the backend at http://localhost:3001.\n' + error.message;
     } finally {
       button.disabled = false;
+      unlockExercise();
     }
   });
   if (window.require && window.require.config) {

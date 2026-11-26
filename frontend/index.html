@@ -12,10 +12,10 @@
   <div class="course-strip"><div class="course-strip-inner"><span class="course-strip-label">COURSE WORKSPACE</span><span class="course-strip-divider"></span><span>Properties for program specification</span><span class="course-strip-chevron">/</span><strong>Exercises</strong></div></div>
   <div class="page-heading"><div class="page-heading-inner"><div class="page-kicker">PRACTICAL ASSIGNMENTS IN HASKELL</div><h2>Learn to specify programs with QuickCheck properties</h2><p>Explore program behavior, formulate testable properties, and refine your specifications through guided exercises.</p></div></div>
   <main class="layout">
-    <aside class="sidebar"><div class="sidebar-heading"><span class="sidebar-heading-icon">01—02</span><span>YOUR EXERCISES</span></div>
-      <div class="eyebrow" id="exercise-number">EXERCISE 01</div>
+    <aside class="sidebar"><div class="sidebar-heading"><span>YOUR EXERCISES</span></div>
+      
       <label for="exercise-select">Choose exercise</label>
-      <select id="exercise-select" class="exercise-select" aria-label="Choose exercise"><option value="insert">01 · Insert</option><option value="sort">02 · Sort</option></select>
+      <select id="exercise-select" class="exercise-select" aria-label="Choose exercise"></select>
       <h1 id="exercise-title">Inserting into a sorted list</h1>
       <p class="assignment" id="exercise-prompt">Formulate an inserting function's description and properties. Only the type signature for the insert function itself is given. Define any helper functions you require when needed. You get bonus points if you also formulate a generator for better input.</p>
       <div class="type-label"><span class="type-label-line"></span> FUNCTION SIGNATURE</div>
@@ -24,17 +24,17 @@
     </aside>
     <section class="workspace"><div class="workspace-heading"><span class="workspace-heading-left"><span class="workspace-heading-square"></span> ASSIGNMENT WORKSPACE</span><span class="workspace-heading-right">3 learning stages</span></div>
       <nav class="steps" aria-label="Learning stages">
-        <button class="step active" data-stage="description"><span class="step-number">01</span> <span>Description</span></button>
-        <button class="step" data-stage="quickcheck"><span class="step-number">02</span> <span>QuickCheck</span></button>
-        <button class="step" data-stage="fitspec"><span class="step-number">03</span> <span>FitSpec</span></button>
+        <button class="step active" data-stage="description"><span class="step-number">T</span> <span>Description</span></button>
+        <button class="step" data-stage="quickcheck"><span class="step-number">QC</span> <span>QuickCheck</span></button>
+        <button class="step" data-stage="fitspec"><span class="step-number">FS</span> <span>FitSpec</span></button>
       </nav>
       <section class="panel" id="description-panel">
-        <div class="panel-header"><div><div class="eyebrow">STAGE 1</div><h2>Function description</h2><p>Describe what the function should do in your own words.</p></div></div>
+        <div class="panel-header"><div><h2>Function description</h2><p>Describe what the function should do in your own words.</p></div></div>
         <label for="description">Your specification</label>
         <textarea id="description" class="description-editor" spellcheck="true" placeholder="Write your description here..."></textarea>
       </section>
       <section class="panel hidden" id="quickcheck-panel">
-        <div class="panel-header"><div><div class="eyebrow">STAGE 2</div><h2>QuickCheck properties</h2><p>Write Haskell properties returning Bool. Define any helpers and an optional generator. Include a main function that runs your properties.</p></div></div>
+        <div class="panel-header"><div><h2>QuickCheck properties</h2><p>Write Haskell properties returning Bool. Define any helpers and an optional generator. Include a main function that runs your properties.</p></div></div>
         <div class="editor-toolbar"><span>Haskell · QuickCheck</span><span id="quickcheck-status">Saved locally</span></div>
         <div id="quickcheck-editor" class="code-editor"></div>
         <button class="run" id="run-quickcheck">▶ Run QuickCheck</button> <button class="secondary" id="check-coverage">Check property coverage &amp; receive feedback and hints</button>
@@ -42,7 +42,7 @@
         <section class="feedback" id="coverage-feedback" aria-live="polite"><h3>Properties feedback</h3><p>Run QuickCheck on your properties, then click <strong>Check property coverage</strong> for feedback and hints.</p></section>
       </section>
       <section class="panel hidden" id="fitspec-panel">
-        <div class="panel-header"><div><div class="eyebrow">STAGE 3</div><h2>FitSpec properties</h2><p>Transform your QuickCheck properties by replacing direct calls to the exercise function with a function argument f. FitSpec explores surviving mutants and potentially redundant properties; its results are not formal proofs.</p></div></div>
+        <div class="panel-header"><div><h2>FitSpec properties</h2><p>Transform your QuickCheck properties by replacing direct calls to the exercise function with a function argument f. FitSpec explores surviving mutants and potentially redundant properties; its results are not formal proofs.</p></div></div>
         <div class="editor-toolbar"><span>Haskell · FitSpec</span><span id="fitspec-status">Saved locally</span></div>
         <div id="fitspec-editor" class="code-editor"></div>
         <button class="run" id="run-fitspec">▶ Run FitSpec</button>
@@ -52,6 +52,6 @@
     </section>
   </main>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"></script>
-  <script src="app.js?v=campus2"></script>
+  <script src="app.js?v=modular1"></script>
 </body>
 </html>

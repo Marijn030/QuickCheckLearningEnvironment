@@ -24,9 +24,8 @@ const ALLOWED_ORIGINS = new Set(
   (process.env.ALLOWED_ORIGINS || 'http://localhost:5500,http://127.0.0.1:5500')
     .split(',').map(s => s.trim()).filter(Boolean)
 );
-const references = { insert: path.join(__dirname, 'Reference.hs'), sort: path.join(__dirname, 'ReferenceSort.hs') };
-const { runSortCoverage } = require('./coverage-sort');
-const { runCoverage } = require('./coverage');
+const exercises = require('./exercise-registry');
+const { runCoverage } = require('./coverage-engine');
 
 let activeRuns = 0;
 const rateBuckets = new Map();
@@ -235,8 +234,9 @@ const server = http.createServer(async (req, res) => {
     let payload;
     try { payload = JSON.parse(Buffer.concat(chunks).toString('utf8')); }
     catch { return json(res, 400, { error: 'Invalid JSON' }); }
-    const exercise = payload?.exercise || 'insert';
-    if (!Object.hasOwn(references, exercise)) return json(res, 400, { error: 'Unknown exercise' });
+    const exercise = payload?.exercise || exercises.keys().next().value;
+    const selected = exercises.get(exercise);
+    if (!selected) return json(res, 400, { error: 'Unknown exercise' });
     const code = payload?.code;
     if (typeof code !== 'string' || !code.trim() || Buffer.byteLength(code, 'utf8') > MAX_SOURCE_BYTES) {
       return json(res, 400, { error: 'Invalid Haskell source' });
@@ -244,10 +244,10 @@ const server = http.createServer(async (req, res) => {
 
     folder = await fs.mkdtemp(path.join(os.tmpdir(), 'spec-lab-'));
     await fs.writeFile(path.join(folder, 'Main.hs'), code, { mode: 0o644 });
-    await fs.copyFile(references[exercise], path.join(folder, 'Reference.hs'));
+    await fs.copyFile(selected.reference, path.join(folder, 'Reference.hs'));
     if (controller.signal.aborted) return;
     const result = kind === 'coverage'
-      ? await (exercise === 'sort' ? runSortCoverage : runCoverage)({ folder, source: code, execute, signal: controller.signal })
+      ? await runCoverage({ folder, source: code, execute, signal: controller.signal, definition: selected.definition, referenceSource: await fs.readFile(selected.reference, 'utf8') })
       : await execute(folder, kind, controller.signal);
     if (!controller.signal.aborted) json(res, 200, result);
   } catch (error) {
