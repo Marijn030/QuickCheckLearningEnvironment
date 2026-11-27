@@ -16,7 +16,7 @@ const IMAGES = {
 const MAX_SOURCE_BYTES = 100_000;
 const MAX_REQUEST_BYTES = MAX_SOURCE_BYTES + 1024;
 const MAX_OUTPUT_BYTES = 40_000;
-const RUN_TIMEOUT_MS = { quickcheck: 25_000, fitspec: 90_000 };
+const RUN_TIMEOUT_MS = { quickcheck: 25_000, fitspec: 300_000 };
 const MAX_CONCURRENT = 2;
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX = 8;
@@ -76,7 +76,7 @@ function runCommand(command, args, timeoutMs = 10_000) {
   });
 }
 
-async function execute(folder, kind, signal) {
+async function execute(folder, kind, signal, timeoutMs = RUN_TIMEOUT_MS[kind]) {
   const containerName = `spec-lab-${randomUUID()}`;
   const args = [
     'run', '--rm', '--name', containerName,
@@ -151,7 +151,7 @@ async function execute(folder, kind, signal) {
       closed = true;
       resolveClose(code);
     });
-    timer = setTimeout(() => terminate('timeout'), RUN_TIMEOUT_MS[kind]);
+    timer = setTimeout(() => terminate('timeout'), timeoutMs);
     if (signal.aborted) terminate('aborted');
 
     // Wait for either Docker to exit or a cancellation to trigger cleanup.
@@ -246,13 +246,19 @@ const server = http.createServer(async (req, res) => {
       return json(res, 400, { error: 'Invalid Haskell source' });
     }
 
+    let fitTimeout;
+    if (kind === 'fitspec') {
+      try { fitTimeout = require('./fitspec-timeout').timeoutMs(code); }
+      catch (error) { return json(res, 400, { error: error.message }); }
+    }
     folder = await fs.mkdtemp(path.join(os.tmpdir(), 'spec-lab-'));
     await fs.writeFile(path.join(folder, 'Main.hs'), code, { mode: 0o644 });
-    await fs.copyFile(selected.reference, path.join(folder, 'Reference.hs'));
+    await fs.writeFile(path.join(folder, 'Reference.hs'), selected.reference, { mode: 0o644 });
+    await fs.chmod(folder, 0o755);
     if (controller.signal.aborted) return;
     const result = kind === 'coverage'
-      ? await runCoverage({ folder, source: code, execute, signal: controller.signal, definition: selected.definition, referenceSource: await fs.readFile(selected.reference, 'utf8') })
-      : await execute(folder, kind, controller.signal);
+      ? await runCoverage({ folder, source: code, execute, signal: controller.signal, definition: selected.definition })
+      : await execute(folder, kind, controller.signal, fitTimeout);
     if (!controller.signal.aborted) json(res, 200, result);
   } catch (error) {
     console.error('Execution request failed:', error);

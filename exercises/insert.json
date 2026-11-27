@@ -1,6 +1,33 @@
 {
-  "id": "insert",
-  "title": "Inserting into a sorted list",
-  "prompt": "Formulate an inserting function's description and properties. Only the type for the sorting function itself is given. Define any helper functions you require when needed. You get bonus points if you also formulate a generator for better input.",
-  "type": "insert :: Int -> [Int] -> [Int]"
+  "description": "Inserting into a sorted list",
+  "signature": "insert :: Int -> [Int] -> [Int]",
+  "hints": {
+    "insertPresOrd": [
+      "If the input is sorted, what must be true of the output?",
+      "Think about neighboring elements in the resulting list.",
+      "Try a property involving isSorted xs and isSorted (insert x xs)."
+    ],
+    "insertIncrLen": [
+      "How many elements should insertion add?",
+      "Compare the length before and after insertion.",
+      "Try length (insert x xs) == length xs + 1."
+    ],
+    "insertCount": [
+      "What happens if the value is already in the list?",
+      "Compare its occurrence count before and after insertion.",
+      "Check that count x (insert x xs) == count x xs + 1."
+    ],
+    "insertPresElems": [
+      "Could an implementation lose an existing element?",
+      "Consider duplicate values, not only membership.",
+      "Compare each original value’s occurrence count before and after insertion."
+    ],
+    "insertPresSubsequence": [
+      "Could insertion rearrange existing elements?",
+      "Think about the original list as a subsequence of the output.",
+      "A subsequence helper can test whether elements retain their relative order."
+    ]
+  },
+  "reference": "module Reference (insert) where\n\n-- Reference behavior: insert a value into an already sorted ascending list.\ninsert :: Int -> [Int] -> [Int]\ninsert x [] = [x]\ninsert x ys@(y:rest)\n  | x <= y    = x : ys\n  | otherwise = y : insert x rest\n",
+  "model": "import Test.QuickCheck\nimport Reference (insert)\nimport Data.List (isSubsequenceOf)\nisSorted [] = True\nisSorted [_] = True\nisSorted (x:y:xs) = x <= y && isSorted (y:xs)\nimplies x y = not x || y\ncount x = length . filter (== x)\ninsertPresOrd x xs = isSorted xs `implies` isSorted (insert x xs)\ninsertIncrLen x xs = length (insert x xs) == length xs + 1\ninsertCount x xs = count x (insert x xs) == count x xs + 1\ninsertPresElems x xs = all (\\y -> count y (insert x xs) >= count y xs) xs\ninsertPresSubsequence x xs = isSubsequenceOf xs (insert x xs)\nmain = do\n  quickCheck insertPresOrd\n  quickCheck insertIncrLen\n  quickCheck insertCount\n  quickCheck insertPresElems\n  quickCheck insertPresSubsequence\n"
 }

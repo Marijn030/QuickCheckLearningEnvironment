@@ -133,16 +133,23 @@ Hints: one initial hint, plus one for each distinct passing non-placeholder prop
 
 ## Adding an exercise (teacher)
 
-Create a folder `backend/exercises/<id>/` with three files. Copy an existing exercise as a starting point.
+Create one JSON file in `exercises/`, for example `exercises/reverse.json`. Copy an existing file as a starting point. Its filename is the exercise ID.
 
-- `exercise.json`: short `description`, concrete `signature` (e.g. `reverse :: [Int] -> [Int]`), and `hints` mapping each model property name to exactly three strings. Optional `label` controls the dropdown.
-- `Reference.hs`: a Haskell module named `Reference` exporting the function from the signature.
-- `Model.hs`: ordinary QuickCheck properties and helpers, with each expected property registered using a separate `quickCheck propertyName` line in `main`.
+- `description`: short function description.
+- `signature`: concrete Haskell type signature.
+- `reference`: complete Haskell source for module `Reference`.
+- `model`: complete teacher QuickCheck source, with each property registered on a separate `quickCheck propertyName` line.
+- `hints`: exactly three strings per model property name.
+- Optional `label`: dropdown label.
 
-Restart the backend and refresh the browser. Starter templates and the public catalog are generated automatically. No exercise-specific JavaScript or mutant definitions are required. The model and reference are not served by the catalog endpoint. The prototype is intended for local trusted use; distributing the whole repository also distributes teacher solutions.
+JSON strings use `\n` for newlines and `\\` for Haskell backslashes. Restart the backend and refresh the browser. The backend generates the catalog and templates automatically; no frontend edits are needed. Teacher source stays on the backend API side (do not distribute the full repository to students).
+
+## FitSpec timeout
+
+Set `timeout = 90` in the FitSpec arguments for a 90-second internal analysis limit. Use integer seconds from 0 to 300. Zero retains FitSpec's no-internal-timeout behavior, but the Docker execution is capped at 300 seconds. Positive values get up to 15 seconds of compilation/output overhead, within the same 300-second hard execution cap. At 300 seconds the external cap may interrupt FitSpec before it prints a report. Existing saved editor code is preserved.
 
 Use concrete first-order function signatures supported by QuickCheck and FitSpec. The matcher supports simple top-level equations, not arbitrary Haskell syntax. Model properties are not automatically compiled on registration; teachers should validate them against the reference using QuickCheck and try student variants before class. Redundant teacher properties may remain unmatched even when a stronger student property implies them. FitSpec can help explore this distinction.
 
 Run `node --test backend/tests/coverage.test.js` for simulated regression tests. Docker integration must be tested separately. GitHub Pages alone cannot execute the app; the frontend requires a running API.
 
-The included QLE_Prototype_Overview.pdf describes an earlier prototype, not this revised workflow.
+

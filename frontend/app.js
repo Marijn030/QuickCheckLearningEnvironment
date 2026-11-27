@@ -27,7 +27,8 @@
   function updateExerciseDisplay() {
     exerciseSelect.value = exercise;
     document.getElementById('exercise-title').textContent = exercises[exercise].title;
-    document.getElementById('exercise-prompt').textContent = exercises[exercise].prompt;
+    document.getElementById('exercise-prompt').textContent = '';
+    document.getElementById('exercise-prompt').hidden = true;
     document.getElementById('exercise-type').textContent = exercises[exercise].type;
   }
   updateExerciseDisplay();
@@ -182,7 +183,7 @@
     const results = document.getElementById('fitspec-results');
     button.disabled = true;
     exerciseSelect.disabled = true;
-    results.textContent = 'Compiling and running FitSpec (up to 90 seconds)...';
+    results.textContent = 'Compiling and running FitSpec (maximum 5 minutes)...';
     try {
       const response = await fetch('http://localhost:3001/api/fitspec', {
         method: 'POST',
