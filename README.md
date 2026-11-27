@@ -153,3 +153,5 @@ Use concrete first-order function signatures supported by QuickCheck and FitSpec
 Run `node --test backend/tests/coverage.test.js` for simulated regression tests. Docker integration must be tested separately. GitHub Pages alone cannot execute the app; the frontend requires a running API.
 
 
+
+Optional `alternatives` maps a registered model property name to additional named definitions in the same `model` source. These are accepted structural variants, not additional requirements. Teachers do not need to supply them for new exercises. The included Insert and Sort exercises use this option for local subsequence and multiset/count formulations. Guarded equations are included in fingerprints. Hint storage uses a new exercise-specific v3 key; old reveal counts are reset, while saved code is retained.

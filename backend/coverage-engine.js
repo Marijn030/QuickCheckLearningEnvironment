@@ -57,6 +57,9 @@ function fingerprints(source,names) {
       current={args:m[2],body:m[3]};
       if(!defs.has(m[1])) defs.set(m[1],[]);
       defs.get(m[1]).push(current);
+    } else if (/^[a-z_][\w']*\s+[^=]+$/.test(line) && !line.includes('::') && !/^(import|module)\b/.test(line) && !/\bwhere\s*$/.test(line)) {
+      const [,name,args]=/^([a-z_][\w']*)\s+(.*)$/.exec(line);
+      current={args,body:''}; if(!defs.has(name)) defs.set(name,[]); defs.get(name).push(current);
     } else if(current && /^\s+\S/.test(line)) current.body+=' '+line.trim();
     else if(line.trim()) current=null;
   }
@@ -93,10 +96,10 @@ async function runCoverage({folder,source,execute,signal,definition}) {
   const passing=names.filter(n=>statuses[n]==='PASS'&&n!=='placeholder');
   const patterns=fingerprints(source,passing);
   const checks=definition.names.map((n,i)=>{
-    const evidence=passing.filter(s=>patterns[s]&&patterns[s]===definition.patterns[n]);
+    const evidence=passing.filter(s=>patterns[s]&&(patterns[s]===definition.patterns[n] || definition.alternatives?.[n]?.includes(patterns[s])));
     return {id:String(i),title:evidence.length?evidence.join(', '):'Hint group '+String.fromCharCode(65+i),status:evidence.length?'detected':'not-demonstrated',evidence,hint:evidence.length?[]:definition.hints[n],message:evidence.length?'Passing property structurally matches a teacher property.':'No structural match yet. Equivalent alternatives may need review.'};
   });
-  const eligible=new Set(passing.filter(n=>patterns[n] && patterns[n].includes(JSON.stringify(definition.fn))).map(n=>patterns[n]));
+  const eligible=new Set(passing.filter(n=>patterns[n] && (patterns[n].includes(JSON.stringify(definition.fn)) || patterns[n]?.includes('\\"'+definition.fn+'\\"'))).map(n=>patterns[n]));
   return {ok:true,properties:passing,failed:names.filter(n=>statuses[n]!=='PASS'),checks,hintBudget:1+eligible.size,generator:{message:/\bforAll\b/.test(source)?'Possible custom generator; instructor review needed.':'No custom generator recognized.'},note:'Structural matching only; no mutation testing in QuickCheck coverage. A match is not a proof of equivalence or completeness.'};
 }
 module.exports={runCoverage,prepareStudent,fingerprints};

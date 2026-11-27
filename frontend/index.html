@@ -8,7 +8,7 @@
 </head>
 <body>
   <div class="institution-bar"><div class="institution-inner"><span class="institution-mark" aria-hidden="true">✳</span><span>QUICKCHECK LEARNING ENVIRONMENT</span><span class="institution-right">PROGRAM SPECIFICATION</span></div></div>
-  <header class="topbar"><div class="topbar-inner"><div class="brand-group"><div class="brand-icon" aria-hidden="true">[ ]</div><div><div class="brand">Specification <span>Lab</span></div><div class="brand-subtitle">Learning QuickCheck for Program Specification</div></div></div><div class="top-note"><span class="top-note-dot"></span> Interactive Haskell exercises</div></div></header>
+  <header class="topbar"><div class="topbar-inner"><div class="brand-group"><div class="brand-icon" aria-hidden="true">[ ]</div><div><div class="brand">Specification <span>Lab</span></div><div class="brand-subtitle">Learning QuickCheck Properties for Program Specification</div></div></div><div class="top-note"><span class="top-note-dot"></span> Interactive Haskell exercises</div></div></header>
   <div class="course-strip"><div class="course-strip-inner"><span class="course-strip-label">COURSE WORKSPACE</span><span class="course-strip-divider"></span><span>Properties for program specification</span><span class="course-strip-chevron">/</span><strong>Exercises</strong></div></div>
   <div class="page-heading"><div class="page-heading-inner"><div class="page-kicker">PRACTICAL ASSIGNMENTS IN HASKELL</div><h2>Learn to specify programs with QuickCheck properties</h2><p>Explore program behavior, formulate testable properties and refine your specifications through guided exercises.</p></div></div>
   <main class="layout">
@@ -16,20 +16,20 @@
       
       <label for="exercise-select">Choose exercise</label>
       <select id="exercise-select" class="exercise-select" aria-label="Choose exercise"></select>
-      <h1 id="exercise-title">Inserting into a sorted list</h1>
+      <h1 id="exercise-title"></h1>
       <p class="assignment" id="exercise-prompt" role="status"></p>
       <div class="type-label"><span class="type-label-line"></span> FUNCTION SIGNATURE</div>
-      <pre class="type" id="exercise-type">insert :: Int -> [Int] -> [Int]</pre>
-      <div class="hint"><span class="hint-symbol">✓</span><span>Your work is saved automatically in this browser.</span></div>
+      <pre class="type" id="exercise-type"></pre>
+      <div class="hint"><span class="hint-symbol">✓</span><span>Your work is saved automatically in the browser.</span></div>
     </aside>
-    <section class="workspace"><div class="workspace-heading"><span class="workspace-heading-left"><span class="workspace-heading-square"></span> ASSIGNMENT WORKSPACE</span><span class="workspace-heading-right">All work on one page</span></div>
+    <section class="workspace"><div class="workspace-heading"><span class="workspace-heading-left"><span class="workspace-heading-square"></span> ASSIGNMENT WORKSPACE</span></div>
       <section class="panel" id="description-panel">
         <div class="panel-header"><div><h2>Function description</h2><p>Describe what the function should do in your own words.</p></div></div>
         <label for="description">Your specification</label>
         <textarea id="description" class="description-editor" spellcheck="true" placeholder="Write your description here..."></textarea>
       </section>
       <div class="coding-columns"><section class="panel" id="quickcheck-panel">
-        <div class="panel-header"><div><h2>QuickCheck properties</h2><p>Write Haskell properties returning Bool or Property. Define any helpers and an optional generator. Include a main function that runs your properties.</p></div></div>
+        <div class="panel-header"><div><h2>QuickCheck properties</h2><p>Write Haskell properties returning a Bool or a Property. Define any helpers and an optional generator for better property input. Add your properties to the main function to run them.</p></div></div>
         <div class="editor-toolbar"><span>Haskell · QuickCheck</span><span id="quickcheck-status">Saved locally</span></div>
         <div id="quickcheck-editor" class="code-editor"></div>
         <button class="run" id="run-quickcheck">▶ Run QuickCheck</button> <button class="secondary" id="check-coverage">Check property coverage &amp; receive feedback and hints</button>
@@ -37,7 +37,7 @@
         <section class="feedback" id="coverage-feedback" aria-live="polite"><h3>Properties feedback</h3><p>Run QuickCheck on your properties, then click <strong>Check property coverage</strong> for feedback and hints.</p></section>
       </section>
       <section class="panel" id="fitspec-panel">
-        <div class="panel-header"><div><h2>FitSpec properties</h2><p>Transform your QuickCheck properties to suitable FitSpec properties. Set timeout in seconds (0 = no internal limit; server maximum 300 seconds). FitSpec explores surviving mutants and potentially redundant properties; its results are not formal proofs.</p></div></div>
+        <div class="panel-header"><div><h2>FitSpec properties</h2><p>Transform your QuickCheck properties to suitable FitSpec properties and add them in the properties list. Set timeout in seconds (0 = no internal limit, server maximum 300 seconds). FitSpec explores surviving mutants and potentially redundant properties. Its results are not formal proofs.</p></div></div>
         <div class="editor-toolbar"><span>Haskell · FitSpec</span><span id="fitspec-status">Saved locally</span></div>
         <div id="fitspec-editor" class="code-editor"></div>
         <button class="run" id="run-fitspec">▶ Run FitSpec</button>
@@ -47,6 +47,6 @@
     </section>
   </main>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"></script>
-  <script src="app.js?v=model3"></script>
+  <script src="app.js?v=model4"></script>
 </body>
 </html>

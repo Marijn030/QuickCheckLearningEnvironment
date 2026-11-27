@@ -22,3 +22,20 @@ test('duplicate properties do not unlock extra hints',async()=>{const r=await ch
 test('placeholder earns no credit',async()=>{const r=await check('sort','placeholder xs = True\nmain = do\n  quickCheck placeholder');assert.equal(r.hintBudget,1);assert.equal(r.properties.length,0);});
 test('renamed helpers and variables match',()=>{const a='ordered [] = True\nordered (x:y:xs) = x <= y && ordered (y:xs)\np xs = ordered (sort xs)';const b='sorted [] = True\nsorted (a:b:bs) = a <= b && sorted (b:bs)\nq ys = sorted (sort ys)';assert.equal(fingerprints(a,['p']).p,fingerprints(b,['q']).q);});
 test('all configured teacher properties match themselves',async()=>{for(const [id,selected] of registry){const source=selected.model;const r=await check(id,source);assert.ok(r.checks.every(c=>c.status==='detected'));}});
+test('local guarded subsequence matches teacher alternative',async()=>{const r=await check('insert',`isSubsequenceOf :: Eq a => [a] -> [a] -> Bool
+isSubsequenceOf [] _ = True
+isSubsequenceOf _ [] = False
+isSubsequenceOf (x:xs) (y:ys)
+  | x == y = isSubsequenceOf xs ys
+  | otherwise = isSubsequenceOf (x:xs) ys
+insertPresSubsequence x xs = isSubsequenceOf xs (insert x xs)
+main = do
+  quickCheck insertPresSubsequence`);assert.deepEqual(r.checks.filter(c=>c.status==='detected').map(c=>c.id),['4']);});
+test('multiset helper and occurrence count match same model group',async()=>{const r=await check('sort',`import qualified Data.List as List
+sameMultiset xs ys = List.sort xs == List.sort ys
+sortPresMultiset xs = sameMultiset (sort xs) xs
+count x = length . filter (== x)
+sortPresCount x xs = count x (sort xs) == count x xs
+main = do
+  quickCheck sortPresMultiset
+  quickCheck sortPresCount`);assert.deepEqual(r.checks[2].evidence,['sortPresMultiset','sortPresCount']);});

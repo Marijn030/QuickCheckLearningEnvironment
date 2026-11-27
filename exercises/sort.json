@@ -2,22 +2,28 @@
   "description": "Sorting a list",
   "signature": "sort :: [Int] -> [Int]",
   "hints": {
-    "sortEnsuresSorted": [
+    "Order": [
       "How can you tell if a list is in ascending order?",
       "Compare each pair of adjacent elements.",
       "Try isSorted (sort xs)."
     ],
-    "sortPresLen": [
+    "Length": [
       "Should sorting add or remove elements?",
       "Compare input and output lengths.",
       "Try length (sort xs) == length xs."
     ],
-    "sortPresMultiset": [
+    "Multiset": [
       "Can sorting lose duplicates or introduce new values?",
       "Think about comparing counts of each value, or sorting both lists.",
       "Try count x (sort xs) == count x xs, or sort xs `elem` permutations xs with Data.List.permutations."
     ]
   },
   "reference": "module Reference (sort) where\nimport qualified Data.List as List\nsort :: [Int] -> [Int]\nsort = List.sort\n",
-  "model": "import Test.QuickCheck\nimport Reference (sort)\nimport qualified Data.List as List\nisSorted [] = True\nisSorted [_] = True\nisSorted (x:y:xs) = x <= y && isSorted (y:xs)\nsortEnsuresSorted xs = isSorted (sort xs)\nsortPresLen xs = length (sort xs) == length xs\nsortPresMultiset xs = List.sort (sort xs) == List.sort xs\nmain = do\n  quickCheck sortEnsuresSorted\n  quickCheck sortPresLen\n  quickCheck sortPresMultiset\n"
+  "model": "import Test.QuickCheck\nimport Reference (sort)\nimport qualified Data.List as List\nisSorted [] = True\nisSorted [_] = True\nisSorted (x:y:xs) = x <= y && isSorted (y:xs)\nsortEnsuresSorted xs = isSorted (sort xs)\nsortPresLen xs = length (sort xs) == length xs\nsortPresMultiset xs = List.sort (sort xs) == List.sort xs\nmain = do\n  quickCheck sortEnsuresSorted\n  quickCheck sortPresLen\n  quickCheck sortPresMultiset\n\nsameMultiset xs ys = List.sort xs == List.sort ys\nmultisetAlternative xs = sameMultiset (sort xs) xs\ncount x = length . filter (== x)\ncountAlternative x xs = count x (sort xs) == count x xs\n",
+  "alternatives": {
+    "sortPresMultiset": [
+      "multisetAlternative",
+      "countAlternative"
+    ]
+  }
 }

@@ -17,8 +17,8 @@
   let exercise = Object.hasOwn(exercises, storedExercise) ? storedExercise : catalog[0].id;
   let storagePrefix = `specification-lab:${exercise}:v1:`;
 
-  const store = (key, value) => { try { localStorage.setItem(storagePrefix + key, value); } catch (_) {} };
-  const load = key => { try { return localStorage.getItem(storagePrefix + key) || ''; } catch (_) { return ''; } };
+  const store = (key, value, prefix = storagePrefix) => { try { localStorage.setItem(prefix + key, value); } catch (_) {} };
+  const load = (key, prefix = storagePrefix) => { try { return localStorage.getItem(prefix + key) || ''; } catch (_) { return ''; } };
   const description = document.getElementById('description');
   description.value = load('description');
   description.addEventListener('input', () => { store('description', description.value); saved(); });
@@ -103,6 +103,7 @@
   const coverageButton = document.getElementById('check-coverage');
   const coveragePanel = document.getElementById('coverage-feedback');
   coverageButton.addEventListener('click', async () => {
+    const requestPrefix = storagePrefix;
     coverageButton.disabled = true;
     exerciseSelect.disabled = true;
     coveragePanel.replaceChildren();
@@ -133,7 +134,7 @@
       intro.textContent = `${data.properties.length} QuickCheck propert${data.properties.length === 1 ? 'y' : 'ies'} passed on the correct implementation.`;
       coveragePanel.appendChild(intro);
       let revealed;
-      try { revealed = JSON.parse(load('revealed-hints-v2') || '{}'); } catch { revealed = {}; }
+      try { revealed = JSON.parse(load('revealed-hints-v3', requestPrefix) || '{}'); } catch { revealed = {}; }
       const used = () => Object.values(revealed).reduce((a,b)=>a+b,0);
       const budget = data.hintBudget;
       const counter = document.createElement('p');
@@ -160,7 +161,7 @@
             button.textContent=count===3?'All hints revealed':`Reveal hint ${count+1}`;
             button.disabled=count===3||used()>=budget;
           }
-          button.addEventListener('click',()=>{if(used()>=budget||(revealed[item.id]||0)>=3)return; revealed[item.id]=(revealed[item.id]||0)+1; store('revealed-hints-v2',JSON.stringify(revealed)); refreshHints();});
+          button.addEventListener('click',()=>{if(storagePrefix!==requestPrefix||used()>=budget||(revealed[item.id]||0)>=3)return; revealed[item.id]=(revealed[item.id]||0)+1; store('revealed-hints-v3',JSON.stringify(revealed),requestPrefix); refreshHints();});
           hintButtons.push(update); card.append(hints,button);
           if (item.detail) { const pre = document.createElement('pre'); pre.textContent = item.detail; card.appendChild(pre); }
         }
