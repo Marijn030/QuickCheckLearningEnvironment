@@ -139,7 +139,7 @@ Create one JSON file in `exercises/`, for example `exercises/reverse.json`. Copy
 - `signature`: concrete Haskell type signature.
 - `reference`: complete Haskell source for module `Reference`.
 - `model`: complete teacher QuickCheck source, with each property registered on a separate `quickCheck propertyName` line.
-- `hints`: exactly three strings per model property name.
+- `hints`: keyed by the exact model property name. Each value can be an object with a freely editable `title` and three strings in `steps`. Legacy arrays of three strings are also accepted (generic title).
 - Optional `label`: dropdown label.
 
 JSON strings use `\n` for newlines and `\\` for Haskell backslashes. Restart the backend and refresh the browser. The backend generates the catalog and templates automatically; no frontend edits are needed. Teacher source stays on the backend API side (do not distribute the full repository to students).
@@ -155,3 +155,13 @@ Run `node --test backend/tests/coverage.test.js` for simulated regression tests.
 
 
 Optional `alternatives` maps a registered model property name to additional named definitions in the same `model` source. These are accepted structural variants, not additional requirements. Teachers do not need to supply them for new exercises. The included Insert and Sort exercises use this option for local subsequence and multiset/count formulations. Guarded equations are included in fingerprints. Hint storage uses a new exercise-specific v3 key; old reveal counts are reset, while saved code is retained.
+
+### Custom hint titles
+
+Keep the Haskell property name as the key; change only the display title. For example:
+
+```json
+{"hints":{"insertPresOrd":{"title":"Ordering","steps":["First hint","Second hint","Third hint"]}}}
+```
+
+Restart the backend after editing exercise files.

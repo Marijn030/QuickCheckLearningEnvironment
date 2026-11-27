@@ -39,3 +39,4 @@ sortPresCount x xs = count x (sort xs) == count x xs
 main = do
   quickCheck sortPresMultiset
   quickCheck sortPresCount`);assert.deepEqual(r.checks[2].evidence,['sortPresMultiset','sortPresCount']);});
+test('custom hint titles are independent of model property identifiers',async()=>{const r=await check('insert',length);assert.equal(r.checks[0].title,'Ordering');assert.equal(r.checks[0].hint.length,3);assert.equal(r.checks[1].title,'p');const s=await check('sort','p xs = length (sort xs) == length xs\nmain = do\n  quickCheck p');assert.equal(s.checks[2].title,'Multiset');});
