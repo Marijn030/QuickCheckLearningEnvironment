@@ -1,0 +1,21 @@
+{
+  "description": "Sorting a list",
+  "signature": "sort :: [Int] -> [Int]",
+  "hints": {
+    "sortEnsuresSorted": [
+      "How can you tell if a list is in ascending order?",
+      "Compare each pair of adjacent elements.",
+      "Try isSorted (sort xs)."
+    ],
+    "sortPresLen": [
+      "Should sorting add or remove elements?",
+      "Compare input and output lengths.",
+      "Try length (sort xs) == length xs."
+    ],
+    "sortPresMultiset": [
+      "Can sorting lose duplicates or introduce new values?",
+      "Think about comparing counts of each value, or sorting both lists.",
+      "Try count x (sort xs) == count x xs, or sort xs `elem` permutations xs with Data.List.permutations."
+    ]
+  }
+}

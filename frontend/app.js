@@ -1,9 +1,8 @@
 (async () => {
-  const stages = ['description', 'quickcheck', 'fitspec'];
   const exerciseSelect = document.getElementById('exercise-select');
   let catalog;
   try {
-    const response = await fetch('exercises.json');
+    const response = await fetch('http://localhost:3001/api/exercises');
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     catalog = await response.json();
     if (!Array.isArray(catalog) || !catalog.length) throw new Error('Empty exercise catalog');
@@ -23,23 +22,8 @@
   const description = document.getElementById('description');
   description.value = load('description');
   description.addEventListener('input', () => { store('description', description.value); saved(); });
-  let stage = 'description';
   const editors = {};
   function saved() { document.getElementById('save-status').textContent = 'Saved locally'; }
-  function setStage(next) {
-    stage = next;
-    stages.forEach(s => {
-      document.getElementById(s + '-panel').classList.toggle('hidden', s !== stage);
-      document.querySelector(`[data-stage="${s}"]`).classList.toggle('active', s === stage);
-    });
-    document.getElementById('previous').disabled = stage === stages[0];
-    document.getElementById('next').disabled = stage === stages[stages.length - 1];
-    store('stage', stage);
-    if (editors[stage]) editors[stage].layout();
-  }
-  document.querySelectorAll('[data-stage]').forEach(button => button.addEventListener('click', () => setStage(button.dataset.stage)));
-  document.getElementById('previous').addEventListener('click', () => setStage(stages[Math.max(0, stages.indexOf(stage) - 1)]));
-  document.getElementById('next').addEventListener('click', () => setStage(stages[Math.min(stages.length - 1, stages.indexOf(stage) + 1)]));
   function updateExerciseDisplay() {
     exerciseSelect.value = exercise;
     document.getElementById('exercise-title').textContent = exercises[exercise].title;
@@ -64,8 +48,6 @@
       document.getElementById(name + '-results').textContent = 'No run yet.';
     }
     document.getElementById('coverage-feedback').innerHTML = '<h3>Properties feedback</h3><p>Run QuickCheck, then check coverage for feedback and hints.</p>';
-    const savedStage = load('stage');
-    setStage(stages.includes(savedStage) ? savedStage : 'description');
     saved();
   });
   function setupEditor(name) {
@@ -86,8 +68,6 @@
       textarea.addEventListener('input', () => { store(name, textarea.value); saved(); });
     }
   }
-  const savedStage = load('stage');
-  setStage(stages.includes(savedStage) ? savedStage : 'description');
   function editorText(name) {
     const editor = editors[name];
     if (editor && typeof editor.getValue === 'function') return editor.getValue();
@@ -126,7 +106,7 @@
     exerciseSelect.disabled = true;
     coveragePanel.replaceChildren();
     const status = document.createElement('p');
-    status.textContent = 'Checking properties against the correct implementation and targeted faulty versions. This can take a minute...';
+    status.textContent = 'Checking properties against the reference and comparing with teacher model properties...';
     coveragePanel.appendChild(status);
     try {
       const response = await fetch('http://localhost:3001/api/coverage', {
@@ -151,6 +131,18 @@
       const intro = document.createElement('p');
       intro.textContent = `${data.properties.length} QuickCheck propert${data.properties.length === 1 ? 'y' : 'ies'} passed on the correct implementation.`;
       coveragePanel.appendChild(intro);
+      let revealed;
+      try { revealed = JSON.parse(load('revealed-hints-v2') || '{}'); } catch { revealed = {}; }
+      const used = () => Object.values(revealed).reduce((a,b)=>a+b,0);
+      const budget = data.hintBudget;
+      const counter = document.createElement('p');
+      const hintButtons = [];
+      function refreshHints() {
+        counter.textContent = `${Math.max(0,budget-used())} additional hint(s) available. Start with one hint; each distinct passing property referring to the exercise function unlocks one more.`;
+        for (const update of hintButtons) update();
+      }
+      coveragePanel.appendChild(counter);
+      if(data.failed?.length) { const p=document.createElement('p'); p.textContent='Not passing: '+data.failed.join(', '); coveragePanel.appendChild(p); }
       for (const item of data.checks) {
         const card = document.createElement('div'); card.className = 'feedback-item';
         const heading = document.createElement('strong');
@@ -158,21 +150,22 @@
         card.appendChild(heading);
         if (item.message) { const explanation = document.createElement('p'); explanation.textContent = item.message; card.appendChild(explanation); }
         if (item.status !== 'detected') {
-          const details = document.createElement('details');
-          const summary = document.createElement('summary'); summary.textContent = 'Show progressive hints';
-          details.appendChild(summary);
-          item.hint.forEach((hint, i) => {
-            const hintDetails = document.createElement('details');
-            const hintSummary = document.createElement('summary'); hintSummary.textContent = `Hint ${i + 1}`;
-            hintDetails.appendChild(hintSummary);
-            const p = document.createElement('p'); p.textContent = hint;
-            hintDetails.appendChild(p); details.appendChild(hintDetails);
-          });
-          card.appendChild(details);
+          const hints = document.createElement('div');
+          const button = document.createElement('button'); button.className='secondary';
+          function update() {
+            hints.replaceChildren();
+            const count=Math.min(3,revealed[item.id]||0);
+            item.hint.slice(0,count).forEach((hint,i)=>{ const p=document.createElement('p'); p.textContent=`Hint ${i+1}: ${hint}`; hints.appendChild(p); });
+            button.textContent=count===3?'All hints revealed':`Reveal hint ${count+1}`;
+            button.disabled=count===3||used()>=budget;
+          }
+          button.addEventListener('click',()=>{if(used()>=budget||(revealed[item.id]||0)>=3)return; revealed[item.id]=(revealed[item.id]||0)+1; store('revealed-hints-v2',JSON.stringify(revealed)); refreshHints();});
+          hintButtons.push(update); card.append(hints,button);
           if (item.detail) { const pre = document.createElement('pre'); pre.textContent = item.detail; card.appendChild(pre); }
         }
         coveragePanel.appendChild(card);
       }
+      refreshHints();
       const bonus = document.createElement('p'); bonus.textContent = `Generator bonus: ${data.generator.message}`;
       coveragePanel.appendChild(bonus);
       const note = document.createElement('p'); note.className = 'feedback-note'; note.textContent = data.note;
@@ -207,7 +200,7 @@
   });
   if (window.require && window.require.config) {
     window.require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs' } });
-    window.require(['vs/editor/editor.main'], () => { setupEditor('quickcheck'); setupEditor('fitspec'); });
+    window.require(['vs/editor/editor.main'], () => { setupEditor('quickcheck'); setupEditor('fitspec'); }, () => { setupEditor('quickcheck'); setupEditor('fitspec'); });
   } else {
     setupEditor('quickcheck'); setupEditor('fitspec');
   }

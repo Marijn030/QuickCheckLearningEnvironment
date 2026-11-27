@@ -1,20 +1,24 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs/promises');
-const os = require('node:os');
-const path = require('node:path');
-const registry = require('../exercise-registry');
-const {runCoverage} = require('../coverage-engine');
-for (const [id, selected] of registry) {
- test(`${id}: ordering-only submission does not earn unrelated credit`, async () => {
-  const folder = await fs.mkdtemp(path.join(os.tmpdir(),'qle-test-'));
-  try {
-   const source = id === 'insert' ? 'prop x xs = isSorted xs `implies` isSorted (insert x xs)\nmain = do\n  quickCheck prop' : 'prop xs = isSorted (sort xs)\nmain = do\n  quickCheck prop';
-   const referenceSource = await fs.readFile(selected.reference,'utf8');
-   const execute = async () => ({ok:true,output:'QLE_RESULT|prop|' + ((await fs.readFile(path.join(folder,'Reference.hs'),'utf8')) === referenceSource ? 'PASS' : 'FAIL')});
-   const result = await runCoverage({folder,source,execute,signal:new AbortController().signal,definition:selected.definition,referenceSource});
-   assert.equal(result.ok,true);
-   assert.deepEqual(result.checks.filter(x=>x.status==='detected').map(x=>x.id),['ordering']);
-  } finally {await fs.rm(folder,{recursive:true,force:true});}
- });
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs/promises');
+const os=require('node:os');
+const path=require('node:path');
+const registry=require('../exercise-registry');
+const {runCoverage,fingerprints,prepareStudent}=require('../coverage-engine');
+async function check(id,source,fail=[]) {
+ const folder=await fs.mkdtemp(path.join(os.tmpdir(),'qle-test-'));
+ let runs=0;
+ try {
+  const selected=registry.get(id);
+  const execute=async()=>{runs++;return {ok:true,output:prepareStudent(source).names.map(n=>`QLE_RESULT|${n}|${fail.includes(n)?'FAIL':'PASS'}`).join('\n')};};
+  const result=await runCoverage({folder,source,execute,signal:new AbortController().signal,definition:selected.definition});
+  assert.equal(runs,1);return result;
+ } finally {await fs.rm(folder,{recursive:true,force:true});}
 }
+const length='p a bs = length (insert a bs) == length bs + 1\nmain = do\n  quickCheck p';
+test('renamed length property matches only length',async()=>{const r=await check('insert',length);assert.deepEqual(r.checks.filter(c=>c.status==='detected').map(c=>c.id),['1']);assert.equal(r.hintBudget,2);});
+test('failed property does not earn credit or hint',async()=>{const r=await check('insert',length,['p']);assert.equal(r.checks.filter(c=>c.status==='detected').length,0);assert.equal(r.hintBudget,1);});
+test('duplicate properties do not unlock extra hints',async()=>{const r=await check('insert',length.replace('main = do','q x xs = length (insert x xs) == length xs + 1\nmain = do')+'\n  quickCheck q');assert.equal(r.hintBudget,2);});
+test('placeholder earns no credit',async()=>{const r=await check('sort','placeholder xs = True\nmain = do\n  quickCheck placeholder');assert.equal(r.hintBudget,1);assert.equal(r.properties.length,0);});
+test('renamed helpers and variables match',()=>{const a='ordered [] = True\nordered (x:y:xs) = x <= y && ordered (y:xs)\np xs = ordered (sort xs)';const b='sorted [] = True\nsorted (a:b:bs) = a <= b && sorted (b:bs)\nq ys = sorted (sort ys)';assert.equal(fingerprints(a,['p']).p,fingerprints(b,['q']).q);});
+test('all configured teacher properties match themselves',async()=>{for(const [id,selected] of registry){const source=await fs.readFile(path.join(path.dirname(selected.reference),'Model.hs'),'utf8');const r=await check(id,source);assert.ok(r.checks.every(c=>c.status==='detected'));}});

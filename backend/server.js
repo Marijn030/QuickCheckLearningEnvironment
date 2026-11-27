@@ -195,12 +195,16 @@ const server = http.createServer(async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
 
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     json(res, ALLOWED_ORIGINS.has(origin) ? 204 : 403, {});
     return;
   }
 
+  if (req.method === 'GET' && req.url === '/api/exercises') {
+    if (origin && !ALLOWED_ORIGINS.has(origin)) return json(res,403,{error:'Origin not allowed'});
+    return json(res,200,[...exercises.values()].map(e=>e.public));
+  }
   const kind = req.url === '/api/coverage' ? 'coverage'
     : req.url === '/api/quickcheck' ? 'quickcheck'
     : req.url === '/api/fitspec' ? 'fitspec' : null;

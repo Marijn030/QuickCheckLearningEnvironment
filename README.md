@@ -123,25 +123,26 @@ The backend should reference existing QuickCheck and FitSpec images, such as:
 
 Check whether another frontend or backend server is already running. Stop the previous process before starting a new one.
 
-## GitHub Pages
+## Student workflow
 
-The frontend can also be accessed through GitHub Pages. However, QuickCheck and FitSpec execution requires a separately running backend.
+Start both servers before opening the page. The exercise catalog is now served by the backend, not a static frontend JSON file. Select Insert or Sort. Write a description at the top, QuickCheck properties on the left, and FitSpec properties on the right. On narrow screens the panels stack. Existing browser storage keys for student code are retained.
 
-For full functionality during local development, use **http://localhost:5500** with the Node.js backend and Docker Desktop running.
-## Exercises
+Run QuickCheck to see test output, then check coverage. The checker runs named properties against the correct reference once and compares passing property fingerprints with the teacher's model. It normalizes whitespace, argument names and some helper names/import aliases. It does not prove equivalence, infer implications or use mutants. FitSpec remains the mutation analysis stage.
 
-Choose **Insert** or **Sort** in the left sidebar. Each exercise has its own three stages (description, QuickCheck, FitSpec), independently saved in the browser. The backend selects a separate hidden `Reference` module for each exercise. For Sort, import `Reference (sort)`; do not implement `sort` in student submissions.
+Hints: one initial hint, plus one for each distinct passing non-placeholder property whose fingerprint refers to the exercise function. Each reveal consumes one shared credit, and each model property has three ordered hints. Reveals persist locally per exercise. This is formative scaffolding, not secure assessment: hints are returned in the coverage response and the browser enforces the reveal budget. Students with developer tools can inspect them. Simple structural matching can miss valid alternatives or accept misleading code; hint eligibility is heuristic too.
 
-The Sort coverage checker assesses sorted output, length preservation, and permutation/multiplicity preservation. It uses conservative recognition and fault probes; feedback is not a formal proof.
+## Adding an exercise (teacher)
 
-## Adding an exercise
+Create a folder `backend/exercises/<id>/` with three files. Copy an existing exercise as a starting point.
 
-1. Add an entry to `frontend/exercises.json` with a unique `id`, `label`, `title`, `prompt`, `type`, and `templates` containing `quickcheck` and `fitspec` Haskell starter strings.
-2. Create `backend/exercises/<id>/Reference.hs` exporting the exercise function from module `Reference`.
-3. Create `backend/exercises/<id>/coverage.js` (copy an existing definition). Export `requirements` (each with `id`, `title`, and `hint` array), `mutants` (Haskell module source keyed by requirement ID), `evidenceFor(body)` (returns requirement IDs mapped to booleans), `generatorMessage`, and `note`. Optionally set `skipUnrecognized`.
-4. Restart the backend and refresh the frontend. The registry and dropdown load the catalog automatically; no changes to `server.js`, `app.js`, or the shared `coverage-engine.js` are needed.
-5. Validate the correct reference, faulty versions, and positive/negative property examples before using the exercise with students.
+- `exercise.json`: short `description`, concrete `signature` (e.g. `reverse :: [Int] -> [Int]`), and `hints` mapping each model property name to exactly three strings. Optional `label` controls the dropdown.
+- `Reference.hs`: a Haskell module named `Reference` exporting the function from the signature.
+- `Model.hs`: ordinary QuickCheck properties and helpers, with each expected property registered using a separate `quickCheck propertyName` line in `main`.
 
-The catalog is public; keep reference implementations and coverage definitions in the backend. The shared engine still uses conservative source patterns and targeted fault probes. Existing browser storage keys are unchanged.
+Restart the backend and refresh the browser. Starter templates and the public catalog are generated automatically. No exercise-specific JavaScript or mutant definitions are required. The model and reference are not served by the catalog endpoint. The prototype is intended for local trusted use; distributing the whole repository also distributes teacher solutions.
 
-Run the lightweight regression tests with `node --test backend/tests/coverage.test.js` from the project root. These simulate execution results and do not replace Docker integration testing. `backend/server-backup.js` and its root-level reference files are legacy files; the active server uses the exercise directories above.
+Use concrete first-order function signatures supported by QuickCheck and FitSpec. The matcher supports simple top-level equations, not arbitrary Haskell syntax. Model properties are not automatically compiled on registration; teachers should validate them against the reference using QuickCheck and try student variants before class. Redundant teacher properties may remain unmatched even when a stronger student property implies them. FitSpec can help explore this distinction.
+
+Run `node --test backend/tests/coverage.test.js` for simulated regression tests. Docker integration must be tested separately. GitHub Pages alone cannot execute the app; the frontend requires a running API.
+
+The included QLE_Prototype_Overview.pdf describes an earlier prototype, not this revised workflow.
