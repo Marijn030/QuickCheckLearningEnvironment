@@ -11,7 +11,7 @@
       ]
     },
     "sortPresLen": {
-      "title": "Size",
+      "title": "Length",
       "steps": [
         "Should sorting add or remove elements?",
         "Compare input and output lengths.",

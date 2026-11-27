@@ -11,7 +11,7 @@
       ]
     },
     "insertIncrLen": {
-      "title": "Size",
+      "title": "Length",
       "steps": [
         "How many elements should insertion add?",
         "Compare the length before and after insertion.",

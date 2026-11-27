@@ -150,6 +150,7 @@
         const heading = document.createElement('strong');
         heading.textContent = `${item.status === 'detected' ? '✓' : '○'} ${item.title}: ${item.status === 'detected' ? 'property demonstrated' : item.status === 'inconclusive' ? 'inconclusive' : 'not yet demonstrated'}`;
         card.appendChild(heading);
+        if (item.status === 'detected' && item.evidence?.length) { const evidence = document.createElement('p'); evidence.textContent = 'Matching student properties: ' + item.evidence.join(', '); card.appendChild(evidence); }
         if (item.message) { const explanation = document.createElement('p'); explanation.textContent = item.message; card.appendChild(explanation); }
         if (item.status !== 'detected') {
           const hints = document.createElement('div');

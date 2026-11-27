@@ -39,4 +39,13 @@ sortPresCount x xs = count x (sort xs) == count x xs
 main = do
   quickCheck sortPresMultiset
   quickCheck sortPresCount`);assert.deepEqual(r.checks[2].evidence,['sortPresMultiset','sortPresCount']);});
-test('custom hint titles are independent of model property identifiers',async()=>{const r=await check('insert',length);assert.equal(r.checks[0].title,'Ordering');assert.equal(r.checks[0].hint.length,3);assert.equal(r.checks[1].title,'p');const s=await check('sort','p xs = length (sort xs) == length xs\nmain = do\n  quickCheck p');assert.equal(s.checks[2].title,'Multiset');});
+test('custom titles are hidden until the corresponding property passes and matches',async()=>{
+ const r=await check('insert',length);
+ assert.deepEqual(r.checks.map(c=>c.title),['Property A','Length','Property C','Property D','Property E']);
+ assert.deepEqual(r.checks[1].evidence,['p']);
+ assert.equal(r.checks[0].hint.length,3);
+ const failed=await check('insert',length,['p']);
+ assert.equal(failed.checks[1].title,'Property B');
+ const s=await check('sort','p xs = length (sort xs) == length xs\nmain = do\n  quickCheck p');
+ assert.deepEqual(s.checks.map(c=>c.title),['Property A','Length','Property C']);
+});

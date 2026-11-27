@@ -85,6 +85,14 @@ function fingerprints(source,names) {
   }
   return Object.fromEntries(names.map(n=>[n,canonical(n)]));
 }
+// Stable alphabetic labels, including exercises with more than 26 properties.
+function propertyLabel(index) {
+  let label = '';
+  for (let n = index + 1; n > 0; n = Math.floor((n - 1) / 26)) {
+    label = String.fromCharCode(65 + (n - 1) % 26) + label;
+  }
+  return 'Property ' + label;
+}
 async function runCoverage({folder,source,execute,signal,definition}) {
   let prepared; try {prepared=prepareStudent(source);} catch(e){return {ok:false,error:e.message};}
   const {names,student,runner}=prepared;
@@ -97,7 +105,7 @@ async function runCoverage({folder,source,execute,signal,definition}) {
   const patterns=fingerprints(source,passing);
   const checks=definition.names.map((n,i)=>{
     const evidence=passing.filter(s=>patterns[s]&&(patterns[s]===definition.patterns[n] || definition.alternatives?.[n]?.includes(patterns[s])));
-    return {id:String(i),title:evidence.length?evidence.join(', '):(definition.hintTitles?.[n] || 'Hint group '+String.fromCharCode(65+i)),status:evidence.length?'detected':'not-demonstrated',evidence,hint:evidence.length?[]:definition.hints[n],message:evidence.length?'Passing property structurally matches a teacher property.':'No structural match yet. Equivalent alternatives may need review.'};
+    return {id:String(i),title:evidence.length?(definition.hintTitles?.[n] || propertyLabel(i)):propertyLabel(i),status:evidence.length?'detected':'not-demonstrated',evidence,hint:evidence.length?[]:definition.hints[n],message:evidence.length?'Passing property structurally matches a teacher property.':'No structural match yet. Equivalent alternatives may need review.'};
   });
   const eligible=new Set(passing.filter(n=>patterns[n] && (patterns[n].includes(JSON.stringify(definition.fn)) || patterns[n]?.includes('\\"'+definition.fn+'\\"'))).map(n=>patterns[n]));
   return {ok:true,properties:passing,failed:names.filter(n=>statuses[n]!=='PASS'),checks,hintBudget:1+eligible.size,generator:{message:/\bforAll\b/.test(source)?'Possible custom generator; instructor review needed.':'No custom generator recognized.'},note:'Structural matching only; no mutation testing in QuickCheck coverage. A match is not a proof of equivalence or completeness.'};

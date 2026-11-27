@@ -165,3 +165,5 @@ Keep the Haskell property name as the key; change only the display title. For ex
 ```
 
 Restart the backend after editing exercise files.
+
+Unmatched requirements are displayed as Property A, Property B, etc. The configured title is returned only after a passing structural match; matching student property names remain visible as evidence. Revealing hints does not change the title. Legacy hint arrays retain the generic label.
